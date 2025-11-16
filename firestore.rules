@@ -1,0 +1,79 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ユーザーコレクション - 自分のデータのみアクセス可
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // ショップコレクション
+    match /shops/{shopId} {
+      // 全員が読み取り可能（アプリで表示するため）
+      allow read: if true;
+      
+      // 書き込みは認証済みユーザーで、自分がオーナーの場合のみ
+      allow write: if request.auth != null && 
+                   request.auth.uid == resource.data.ownerUserId;
+      
+      // 新規作成時
+      allow create: if request.auth != null && 
+                    request.auth.uid == request.resource.data.ownerUserId;
+    }
+    
+    // イベントコレクション
+    match /events/{eventId} {
+      // 承認済みイベントのみ読み取り可能
+      allow read: if resource.data.approvalStatus == 'approved';
+      
+      // 管理者は全て読み取り可能（承認作業のため）
+      allow read: if request.auth != null && 
+                  get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      
+      // 自分がオーナーのイベントは読み取り可能
+      allow read: if request.auth != null && 
+                  request.auth.uid == resource.data.ownerUserId;
+      
+      // 書き込みは認証済みユーザーで、自分がオーナーの場合のみ
+      allow write: if request.auth != null && 
+                   request.auth.uid == resource.data.ownerUserId;
+      
+      // 新規作成時
+      allow create: if request.auth != null && 
+                    request.auth.uid == request.resource.data.ownerUserId &&
+                    request.resource.data.approvalStatus == 'pending' &&
+                    request.resource.data.eventProgress == 'scheduled';
+      
+      // 管理者は承認ステータスの更新が可能
+      allow update: if request.auth != null && 
+                    get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' &&
+                    request.resource.data.approvalStatus in ['approved', 'rejected'];
+      
+      // オーナーは進行状況ステータスの更新が可能
+      allow update: if request.auth != null && 
+                    request.auth.uid == resource.data.ownerUserId &&
+                    request.resource.data.eventProgress in ['scheduled', 'cancelled', 'ongoing', 'finished'] &&
+                    // 承認ステータスは変更不可
+                    request.resource.data.approvalStatus == resource.data.approvalStatus;
+    }
+    
+    // マップ（公共施設等）コレクション
+    match /maps/{mapId} {
+      // 全員が読み取り可能
+      allow read: if true;
+      
+      // 管理者のみ作成・編集可能
+      allow write: if request.auth != null && 
+                   get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // カテゴリコレクション
+    match /categories/{categoryId} {
+      // 全員が読み取り可能
+      allow read: if true;
+      
+      // 管理者のみ作成・編集可能
+      allow write: if request.auth != null && 
+                   get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+  }
+}
