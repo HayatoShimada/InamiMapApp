@@ -221,10 +221,10 @@ const HomePage: React.FC = () => {
               <Box display="flex" alignItems="center" mb={2}>
                 <LocationIcon sx={{ mr: 2, color: 'primary.main' }} />
                 <Box>
-                  <Typography variant="h6">南砺市役所井波庁舎</Typography>
+                  <Typography variant="h6">85-Store</Typography>
                   <Typography color="text.secondary">
-                    〒932-0231<br />
-                    富山県南砺市山見1739-2
+                    〒932-0211<br />
+                    富山県南砺市井波3110-1
                   </Typography>
                 </Box>
               </Box>
@@ -235,7 +235,7 @@ const HomePage: React.FC = () => {
                 <Box>
                   <Typography variant="h6">電話番号</Typography>
                   <Typography color="text.secondary">
-                    0763-23-2003（井波庁舎代表）
+                    0763-82-5850
                   </Typography>
                 </Box>
               </Box>
@@ -244,7 +244,7 @@ const HomePage: React.FC = () => {
                 <Box>
                   <Typography variant="h6">メールアドレス</Typography>
                   <Typography color="text.secondary">
-                    info@city.nanto.toyama.jp
+                    info@85-store.com
                   </Typography>
                 </Box>
               </Box>
@@ -253,14 +253,104 @@ const HomePage: React.FC = () => {
         </Paper>
       </Box>
 
+      {/* オープンソース開発情報 */}
+      <Box sx={{ py: 6 }}>
+        <Typography variant="h4" gutterBottom align="center">
+          オープンソース開発について
+        </Typography>
+        <Paper elevation={1} sx={{ p: 3, mt: 3 }}>
+          <Typography variant="body1" paragraph>
+            井波町マップアプリは、オープンソースプロジェクトとして開発されています。
+          </Typography>
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={6}>
+              <Typography variant="h6" gutterBottom>
+                プロジェクトの特徴
+              </Typography>
+              <List>
+                <ListItem>
+                  <ListItemIcon>
+                    <CheckCircleIcon color="primary" />
+                  </ListItemIcon>
+                  <ListItemText 
+                    primary="オープンソース" 
+                    secondary="ソースコードは公開されており、透明性を保っています"
+                  />
+                </ListItem>
+                <ListItem>
+                  <ListItemIcon>
+                    <CheckCircleIcon color="primary" />
+                  </ListItemIcon>
+                  <ListItemText 
+                    primary="コミュニティ主導" 
+                    secondary="地域のニーズに合わせて継続的に改善されています"
+                  />
+                </ListItem>
+                <ListItem>
+                  <ListItemIcon>
+                    <CheckCircleIcon color="primary" />
+                  </ListItemIcon>
+                  <ListItemText 
+                    primary="技術革新" 
+                    secondary="最新のWebテクノロジーを活用した持続可能な開発"
+                  />
+                </ListItem>
+              </List>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="h6" gutterBottom>
+                開発への参加
+              </Typography>
+              <List>
+                <ListItem>
+                  <ListItemIcon>
+                    <CheckCircleIcon color="primary" />
+                  </ListItemIcon>
+                  <ListItemText 
+                    primary="GitHub での開発" 
+                    secondary="課題報告や機能提案をお待ちしています"
+                  />
+                </ListItem>
+                <ListItem>
+                  <ListItemIcon>
+                    <CheckCircleIcon color="primary" />
+                  </ListItemIcon>
+                  <ListItemText 
+                    primary="フィードバック歓迎" 
+                    secondary="ユーザーの声を開発に反映させています"
+                  />
+                </ListItem>
+                <ListItem>
+                  <ListItemIcon>
+                    <CheckCircleIcon color="primary" />
+                  </ListItemIcon>
+                  <ListItemText 
+                    primary="ドキュメント整備" 
+                    secondary="開発者向けの詳細な技術ドキュメントを提供"
+                  />
+                </ListItem>
+              </List>
+            </Grid>
+          </Grid>
+          <Box sx={{ mt: 3, textAlign: 'center' }}>
+            <Typography variant="body2" color="text.secondary">
+              開発に興味をお持ちの方は、85-Storeまでお気軽にお問い合わせください。
+            </Typography>
+          </Box>
+        </Paper>
+      </Box>
+
       {/* フッター */}
       <Divider sx={{ my: 4 }} />
       <Box sx={{ pb: 4, textAlign: 'center' }}>
         <Typography variant="body2" color="text.secondary">
-          © 2024 南砺市. すべての権利を保有します。
+          © 2024 85-Store. すべての権利を保有します。
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-          このアプリは南砺市井波の公式サービスです。
+          このアプリは85-Storeが運営する井波町の地域情報サービスです。
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+          オープンソースプロジェクトとして開発されています。
         </Typography>
       </Box>
     </Container>

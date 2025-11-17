@@ -7,6 +7,10 @@ export interface FirestoreUser {
   displayName: string;
   photoURL?: string;
   role?: 'admin' | 'shop_owner';
+  approvalStatus?: 'pending' | 'approved' | 'rejected';
+  approvedAt?: Timestamp;
+  rejectedAt?: Timestamp;
+  rejectionReason?: string;
   createdAt: Timestamp;
 }
 
@@ -23,6 +27,10 @@ export interface FirestoreShop {
   address: string;
   shopCategory: string;
   images: string[]; // 最大5枚
+  approvalStatus?: 'pending' | 'approved' | 'rejected'; // 既存データ互換性のためオプショナル
+  approvedAt?: Timestamp;
+  rejectedAt?: Timestamp;
+  rejectionReason?: string;
   // オンライン情報
   googleMapUrl?: string;
   website?: string;
@@ -38,6 +46,18 @@ export interface FirestoreShop {
   phone?: string;
   email?: string;
   closedDays?: string;
+  businessHours?: WeeklyBusinessHours;
+  // 提供サービス
+  services?: string[];
+  // 臨時営業変更
+  temporaryStatus?: {
+    isTemporaryClosed: boolean;
+    isReducedHours: boolean;
+    startDate?: Timestamp;
+    endDate?: Timestamp;
+    message?: string;
+    temporaryHours?: WeeklyBusinessHours;
+  };
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -48,11 +68,13 @@ export interface FirestoreEvent {
   shopId?: string;
   eventName: string;
   description: string;
+  eventCategory: string; // イベントカテゴリ
   eventTimeStart: Timestamp;
   eventTimeEnd: Timestamp;
   location: string;
   participatingShops: string[];
   images: string[]; // 最大5枚
+  detailUrl?: string; // イベント詳細URL
   approvalStatus: 'pending' | 'approved' | 'rejected';
   eventProgress: 'scheduled' | 'cancelled' | 'ongoing' | 'finished';
   createdAt: Timestamp;
@@ -85,13 +107,42 @@ export interface FirestoreCategory {
 export interface EventFormData {
   eventName: string;
   description: string;
+  eventCategory: string;
   eventTimeStart: Date;
   eventTimeEnd: Date;
   location: string;
   shopId?: string;
   participatingShops: string[];
   images: File[];
+  detailUrl?: string;
 }
+
+// 営業時間関連
+export interface BusinessHours {
+  open: string;
+  close: string;
+  closed: boolean;
+}
+
+export interface WeeklyBusinessHours {
+  monday?: BusinessHours;
+  tuesday?: BusinessHours;
+  wednesday?: BusinessHours;
+  thursday?: BusinessHours;
+  friday?: BusinessHours;
+  saturday?: BusinessHours;
+  sunday?: BusinessHours;
+}
+
+export const WEEKDAYS = {
+  monday: '月曜日',
+  tuesday: '火曜日', 
+  wednesday: '水曜日',
+  thursday: '木曜日',
+  friday: '金曜日',
+  saturday: '土曜日',
+  sunday: '日曜日',
+} as const;
 
 export interface ShopFormData {
   shopName: string;
@@ -119,6 +170,17 @@ export interface ShopFormData {
   phone?: string;
   email?: string;
   closedDays?: string;
+  businessHours?: WeeklyBusinessHours;
+  // 提供サービス
+  services?: string[];
+  temporaryStatus?: {
+    isTemporaryClosed: boolean;
+    isReducedHours: boolean;
+    startDate?: Date;
+    endDate?: Date;
+    message?: string;
+    temporaryHours?: WeeklyBusinessHours;
+  };
 }
 
 // イベント進行状況の日本語ラベル
@@ -134,4 +196,112 @@ export const APPROVAL_STATUS_LABELS = {
   pending: '承認待ち',
   approved: '承認済み',
   rejected: '却下',
+} as const;
+
+// イベントカテゴリ
+export const EVENT_CATEGORIES = [
+  '祭り・イベント',
+  'ワークショップ',
+  '展示・ギャラリー',
+  'マーケット・市場',
+  '公演・パフォーマンス',
+  'グルメ・料理',
+  '伝統工芸',
+  '自然・アウトドア',
+  '教育・学習',
+  'その他',
+] as const;
+
+// 公共施設タイプ
+export const PUBLIC_FACILITY_TYPES = [
+  '行政施設',
+  '文化施設',
+  'スポーツ施設',
+  '教育施設',
+  '医療施設',
+  '福祉施設',
+  '交通施設',
+  '公園・緑地',
+  '観光施設',
+  '寺社仏閣',
+  'その他',
+] as const;
+
+// 店舗提供サービス
+export const SHOP_SERVICES = [
+  'トイレ利用可能',
+  'モバイル充電可能',
+  'ペット同伴可',
+  '喫煙所あり',
+  'おむつ交換台',
+  'Wi-Fi利用可能',
+  'クレジットカード対応',
+  '電子マネー対応',
+  'バリアフリー対応',
+  '駐車場あり',
+  '自転車置き場',
+  'テイクアウト可能',
+  '配達・デリバリー',
+  '予約可能',
+  'オンライン注文',
+  '多言語対応',
+  'その他',
+] as const;
+
+export interface FirestorePublicFacility {
+  id: string;
+  name: string;
+  description: string;
+  facilityType: string;
+  location: {
+    latitude: number;
+    longitude: number;
+  };
+  address: string;
+  images: string[];
+  website?: string;
+  phone?: string;
+  openingHours?: string;
+  accessInfo?: string;
+  adminId: string;
+  isActive: boolean;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+export interface PublicFacilityFormData {
+  name: string;
+  description: string;
+  facilityType: string;
+  location: {
+    latitude: number;
+    longitude: number;
+  };
+  address: string;
+  images: File[];
+  website?: string;
+  phone?: string;
+  openingHours?: string;
+  accessInfo?: string;
+}
+
+// サービスアイコンマッピング
+export const SERVICE_ICONS: Record<string, string> = {
+  'トイレ利用可能': '🚻',
+  'モバイル充電可能': '🔌',
+  'ペット同伴可': '🐕',
+  '喫煙所あり': '🚬',
+  'おむつ交換台': '👶',
+  'Wi-Fi利用可能': '📶',
+  'クレジットカード対応': '💳',
+  '電子マネー対応': '📱',
+  'バリアフリー対応': '♿',
+  '駐車場あり': '🅿️',
+  '自転車置き場': '🚲',
+  'テイクアウト可能': '🥡',
+  '配達・デリバリー': '🚚',
+  '予約可能': '📅',
+  'オンライン注文': '🛒',
+  '多言語対応': '🌐',
+  'その他': '⭐',
 } as const;

@@ -30,7 +30,8 @@ import {
   EventFormData, 
   FirestoreShop,
   EVENT_PROGRESS_LABELS,
-  APPROVAL_STATUS_LABELS 
+  APPROVAL_STATUS_LABELS,
+  EVENT_CATEGORIES
 } from '../types/firebase';
 import { EVENT_PROGRESS_STATUS, EVENT_APPROVAL_STATUS } from '../../../shared/constants';
 import ImageUpload from '../components/ImageUpload';
@@ -59,12 +60,14 @@ export default function EventForm() {
     defaultValues: {
       eventName: '',
       description: '',
+      eventCategory: '',
       eventTimeStart: new Date(),
       eventTimeEnd: new Date(),
       location: '',
       shopId: '',
       participatingShops: [],
       images: [],
+      detailUrl: '',
       eventProgress: EVENT_PROGRESS_STATUS.SCHEDULED,
     },
   });
@@ -140,12 +143,14 @@ export default function EventForm() {
       reset({
         eventName: event.eventName,
         description: event.description,
+        eventCategory: event.eventCategory || '',
         eventTimeStart: event.eventTimeStart.toDate(),
         eventTimeEnd: event.eventTimeEnd.toDate(),
         location: event.location,
         shopId: event.shopId || '',
         participatingShops: event.participatingShops || [],
         images: [],
+        detailUrl: event.detailUrl || '',
         eventProgress: event.eventProgress,
       });
     } catch (error: any) {
@@ -174,11 +179,13 @@ export default function EventForm() {
         shopId: data.shopId || undefined,
         eventName: data.eventName,
         description: data.description,
+        eventCategory: data.eventCategory,
         eventTimeStart: Timestamp.fromDate(data.eventTimeStart),
         eventTimeEnd: Timestamp.fromDate(data.eventTimeEnd),
         location: data.location,
         participatingShops: data.participatingShops || [],
         images: imageUrls,
+        detailUrl: data.detailUrl || undefined,
         eventProgress: (isEditMode ? data.eventProgress : EVENT_PROGRESS_STATUS.SCHEDULED) as 'scheduled' | 'cancelled' | 'ongoing' | 'finished',
         approvalStatus: EVENT_APPROVAL_STATUS.PENDING as 'pending' | 'approved' | 'rejected'
       };
@@ -301,6 +308,29 @@ export default function EventForm() {
 
                 <Grid item xs={12}>
                   <Controller
+                    name="eventCategory"
+                    control={control}
+                    rules={{ required: 'イベントカテゴリは必須です' }}
+                    render={({ field }) => (
+                      <FormControl fullWidth error={!!errors.eventCategory}>
+                        <InputLabel>イベントカテゴリ</InputLabel>
+                        <Select {...field} label="イベントカテゴリ">
+                          {EVENT_CATEGORIES.map((category) => (
+                            <MenuItem key={category} value={category}>
+                              {category}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                        {errors.eventCategory && (
+                          <FormHelperText>{errors.eventCategory.message}</FormHelperText>
+                        )}
+                      </FormControl>
+                    )}
+                  />
+                </Grid>
+
+                <Grid item xs={12}>
+                  <Controller
                     name="description"
                     control={control}
                     rules={{ 
@@ -381,6 +411,23 @@ export default function EventForm() {
                         fullWidth
                         error={!!errors.location}
                         helperText={errors.location?.message || '具体的な住所や施設名を入力してください'}
+                      />
+                    )}
+                  />
+                </Grid>
+
+                <Grid item xs={12}>
+                  <Controller
+                    name="detailUrl"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        label="イベント詳細URL（任意）"
+                        fullWidth
+                        placeholder="https://example.com/event-details"
+                        error={!!errors.detailUrl}
+                        helperText={errors.detailUrl?.message || 'イベントの詳細情報や申し込みページのURLを入力してください'}
                       />
                     )}
                   />

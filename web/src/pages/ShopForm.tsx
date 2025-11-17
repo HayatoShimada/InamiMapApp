@@ -34,10 +34,14 @@ import {
   LocationOn
 } from '@mui/icons-material';
 import { Timestamp } from 'firebase/firestore';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { useAuth } from '../contexts/AuthContext';
 import { useFirestore } from '../hooks/useFirestore';
-import { FirestoreShop, ShopFormData } from '../types/firebase';
+import { FirestoreShop, ShopFormData, WeeklyBusinessHours } from '../types/firebase';
 import ImageUpload from '../components/ImageUpload';
+import BusinessHoursInput from '../components/BusinessHoursInput';
+import TemporaryStatusInput from '../components/TemporaryStatusInput';
+import ServicesInput from '../components/ServicesInput';
 
 // デモ用のカテゴリ（実際の実装では管理者が管理するカテゴリから取得）
 const SHOP_CATEGORIES = [
@@ -61,6 +65,23 @@ export default function ShopForm() {
   const [shopData, setShopData] = useState<FirestoreShop | null>(null);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [extractingCoords, setExtractingCoords] = useState(false);
+  const [businessHours, setBusinessHours] = useState<WeeklyBusinessHours>({});
+  const [services, setServices] = useState<string[]>([]);
+  const [temporaryStatus, setTemporaryStatus] = useState<{
+    isTemporaryClosed: boolean;
+    isReducedHours: boolean;
+    startDate?: Date;
+    endDate?: Date;
+    message?: string;
+    temporaryHours?: WeeklyBusinessHours;
+  }>({
+    isTemporaryClosed: false,
+    isReducedHours: false,
+    startDate: undefined,
+    endDate: undefined,
+    message: '',
+    temporaryHours: {},
+  });
 
   const { getDocument, addDocument, updateDocument } = useFirestore<FirestoreShop>('shops');
 
@@ -96,6 +117,7 @@ export default function ShopForm() {
       phone: '',
       email: '',
       closedDays: '',
+      services: [],
     },
   });
 
@@ -115,11 +137,42 @@ export default function ShopForm() {
     setError('');
 
     try {
-      // Google Maps URLのパターンをチェック
+      // 短縮URL（goo.gl）の場合はCloud Functionで展開
+      if (url.includes('maps.app.goo.gl') || url.includes('goo.gl')) {
+        try {
+          console.log('短縮URL検出、Cloud Functionで展開中...');
+          const functions = getFunctions();
+          const expandShortUrlFunction = httpsCallable(functions, 'expandShortUrl');
+          
+          const result = await expandShortUrlFunction({ url });
+          const data = result.data as {
+            success: boolean;
+            expandedUrl?: string;
+            coordinates?: { latitude: number; longitude: number };
+            error?: string;
+          };
+
+          if (data.success && data.coordinates) {
+            setValue('location.latitude', data.coordinates.latitude);
+            setValue('location.longitude', data.coordinates.longitude);
+            setError('');
+            console.log('座標抽出成功（Cloud Function）:', data.coordinates);
+            return;
+          } else {
+            throw new Error(data.error || 'Cloud Functionから座標を取得できませんでした');
+          }
+        } catch (cloudError) {
+          console.error('Cloud Function呼び出しエラー:', cloudError);
+          setError('短縮URLの展開に失敗しました。以下の手順で座標を取得してください：\n1. リンクをブラウザで開く\n2. URLバーから完全なURLをコピー\n3. そのURLを貼り付けて再実行');
+          return;
+        }
+      }
+
+      // 通常のURL処理（既存のロジック）
       let lat: number | null = null;
       let lng: number | null = null;
 
-      // パターン1: https://maps.google.com/?q=lat,lng
+      // パターン1: @座標 形式
       const coordinatePattern = /@(-?\d+\.\d+),(-?\d+\.\d+)/;
       const coordinateMatch = url.match(coordinatePattern);
 
@@ -127,7 +180,7 @@ export default function ShopForm() {
         lat = parseFloat(coordinateMatch[1]);
         lng = parseFloat(coordinateMatch[2]);
       } else {
-        // パターン2: https://www.google.com/maps/place/.../@lat,lng
+        // パターン2: より広範囲の@パターン
         const placePattern = /@(-?\d+\.\d+),(-?\d+\.\d+),/;
         const placeMatch = url.match(placePattern);
 
@@ -135,13 +188,22 @@ export default function ShopForm() {
           lat = parseFloat(placeMatch[1]);
           lng = parseFloat(placeMatch[2]);
         } else {
-          // パターン3: ?q=lat,lng
+          // パターン3: ?q=座標 パターン
           const queryPattern = /[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/;
           const queryMatch = url.match(queryPattern);
 
           if (queryMatch) {
             lat = parseFloat(queryMatch[1]);
             lng = parseFloat(queryMatch[2]);
+          } else {
+            // パターン4: /place/ URLで座標がある場合
+            const placeCoordPattern = /place\/[^/]*\/@(-?\d+\.\d+),(-?\d+\.\d+)/;
+            const placeCoordMatch = url.match(placeCoordPattern);
+            
+            if (placeCoordMatch) {
+              lat = parseFloat(placeCoordMatch[1]);
+              lng = parseFloat(placeCoordMatch[2]);
+            }
           }
         }
       }
@@ -151,8 +213,10 @@ export default function ShopForm() {
         setValue('location.latitude', lat);
         setValue('location.longitude', lng);
         setError('');
+        console.log('座標抽出成功:', { lat, lng });
       } else {
-        setError('GoogleマップURLから座標を抽出できませんでした。正しいGoogleマップの共有リンクを使用してください。');
+        console.log('座標抽出失敗、URL:', url);
+        setError('GoogleマップURLから座標を抽出できませんでした。\n\n以下の形式のURLをお試しください：\n• https://www.google.com/maps/@緯度,経度,倍率z\n• https://www.google.com/maps/place/場所名/@緯度,経度,倍率z\n• https://maps.app.goo.gl/短縮コード');
       }
     } catch (err) {
       console.error('座標抽出エラー:', err);
@@ -187,6 +251,20 @@ export default function ShopForm() {
 
       setShopData(shop);
       setImageUrls(shop.images || []);
+      setBusinessHours(shop.businessHours || {});
+      setServices(shop.services || []);
+      
+      // 臨時営業変更ステータスを設定
+      if (shop.temporaryStatus) {
+        setTemporaryStatus({
+          isTemporaryClosed: shop.temporaryStatus.isTemporaryClosed || false,
+          isReducedHours: shop.temporaryStatus.isReducedHours || false,
+          startDate: shop.temporaryStatus.startDate ? new Date(shop.temporaryStatus.startDate.seconds * 1000) : undefined,
+          endDate: shop.temporaryStatus.endDate ? new Date(shop.temporaryStatus.endDate.seconds * 1000) : undefined,
+          message: shop.temporaryStatus.message || '',
+          temporaryHours: shop.temporaryStatus.temporaryHours || {},
+        });
+      }
       
       // フォームに既存データを設定
       reset({
@@ -242,6 +320,20 @@ export default function ShopForm() {
         phone: data.phone,
         email: data.email,
         closedDays: data.closedDays,
+        businessHours: businessHours,
+        services: services,
+        ...(temporaryStatus.isTemporaryClosed || temporaryStatus.isReducedHours ? {
+          temporaryStatus: {
+            isTemporaryClosed: temporaryStatus.isTemporaryClosed,
+            isReducedHours: temporaryStatus.isReducedHours,
+            ...(temporaryStatus.startDate && { startDate: Timestamp.fromDate(temporaryStatus.startDate) }),
+            ...(temporaryStatus.endDate && { endDate: Timestamp.fromDate(temporaryStatus.endDate) }),
+            ...(temporaryStatus.message && { message: temporaryStatus.message }),
+            ...(temporaryStatus.temporaryHours && { temporaryHours: temporaryStatus.temporaryHours }),
+          }
+        } : {}),
+        // 新規店舗は承認待ち、更新時は既存のステータスを保持
+        ...((!isEditMode) && { approvalStatus: 'pending' as const }),
       };
 
       if (isEditMode && id) {
@@ -506,6 +598,28 @@ export default function ShopForm() {
                       </Button>
                     </Box>
                   )}
+                  
+                  {/* GoogleマップURL使用方法チュートリアル */}
+                  <Box sx={{ mt: 2, p: 2, bgcolor: 'info.light', borderRadius: 1 }}>
+                    <Typography variant="h6" gutterBottom color="info.dark">
+                      GoogleマップURLの取得方法
+                    </Typography>
+                    <Typography variant="body2" paragraph>
+                      <strong>手順:</strong>
+                    </Typography>
+                    <Typography variant="body2" component="div">
+                      1. <a href="https://maps.google.com" target="_blank" rel="noopener noreferrer">Google Maps</a>を開きます<br />
+                      2. 店舗の住所を検索して場所を特定します<br />
+                      3. 店舗のマーカーをクリックして詳細を表示<br />
+                      4. 「共有」ボタンをクリック<br />
+                      5. 「リンクをコピー」を選択<br />
+                      6. コピーしたURLを上記のフィールドに貼り付けます<br />
+                      7. 「座標を自動取得」ボタンを押して緯度・経度を設定
+                    </Typography>
+                    <Typography variant="body2" sx={{ mt: 1, fontStyle: 'italic' }}>
+                      ※ 正確な座標を設定することで、アプリの地図上に店舗が正しく表示されます
+                    </Typography>
+                  </Box>
                 </Grid>
 
                 <Grid item xs={12} md={6}>
@@ -590,7 +704,7 @@ export default function ShopForm() {
                     render={({ field }) => (
                       <TextField
                         {...field}
-                        label="Twitter / X"
+                        label="X (旧Twitter)"
                         fullWidth
                         placeholder="@アカウント名 または URL"
                         InputProps={{
@@ -725,12 +839,12 @@ export default function ShopForm() {
                     render={({ field }) => (
                       <TextField
                         {...field}
-                        label="定休日・営業時間"
+                        label="定休日・営業時間（簡易入力）"
                         fullWidth
                         multiline
                         rows={2}
                         placeholder="例：毎週水曜日、年末年始休業 / 営業時間：9:00-18:00"
-                        helperText="定休日や営業時間の情報をご記入ください"
+                        helperText="簡易的な営業時間情報（下の詳細設定も利用可能）"
                         InputProps={{
                           startAdornment: (
                             <InputAdornment position="start">
@@ -740,6 +854,47 @@ export default function ShopForm() {
                         }}
                       />
                     )}
+                  />
+                </Grid>
+
+                {/* 提供サービス設定 */}
+                <Grid item xs={12}>
+                  <Divider sx={{ my: 2 }} />
+                  <Typography variant="h6" gutterBottom>
+                    提供サービス・設備
+                  </Typography>
+                </Grid>
+                
+                <Grid item xs={12}>
+                  <ServicesInput
+                    value={services}
+                    onChange={setServices}
+                    disabled={isSubmitting}
+                  />
+                </Grid>
+
+                {/* 詳細営業時間設定 */}
+                <Grid item xs={12}>
+                  <Divider sx={{ my: 2 }} />
+                  <Typography variant="h6" gutterBottom>
+                    営業時間・定休日
+                  </Typography>
+                </Grid>
+                
+                <Grid item xs={12}>
+                  <BusinessHoursInput
+                    value={businessHours}
+                    onChange={setBusinessHours}
+                    disabled={isSubmitting}
+                  />
+                </Grid>
+
+                {/* 臨時営業変更設定 */}
+                <Grid item xs={12}>
+                  <TemporaryStatusInput
+                    value={temporaryStatus}
+                    onChange={setTemporaryStatus}
+                    disabled={isSubmitting}
                   />
                 </Grid>
 

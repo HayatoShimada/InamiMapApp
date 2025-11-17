@@ -16,6 +16,7 @@ import {
   TextField,
   Tab,
   Tabs,
+  CircularProgress,
 } from '@mui/material';
 import {
   AdminPanelSettings,
@@ -23,13 +24,16 @@ import {
   Cancel,
   Event,
   Visibility,
+  Business,
+  Add,
 } from '@mui/icons-material';
-import { collection, query, where, orderBy, getDocs, updateDoc, doc } from 'firebase/firestore';
+import { collection, query, where, orderBy, getDocs, updateDoc, doc, writeBatch } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../contexts/AuthContext';
-import { FirestoreEvent } from '../types/firebase';
-import { EVENT_PROGRESS_LABELS, APPROVAL_STATUS_LABELS } from '../types/firebase';
+import { FirestoreEvent, FirestorePublicFacility, FirestoreShop } from '../types/firebase';
+import { EVENT_PROGRESS_LABELS, APPROVAL_STATUS_LABELS, SERVICE_ICONS } from '../types/firebase';
 import { EVENT_APPROVAL_STATUS } from '../../../shared/constants';
+import UserManagement from './UserManagement';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -48,12 +52,17 @@ function TabPanel({ children, value, index }: TabPanelProps) {
 export default function AdminPanel() {
   const { userData } = useAuth();
   const [events, setEvents] = useState<FirestoreEvent[]>([]);
+  const [shops, setShops] = useState<FirestoreShop[]>([]);
+  const [facilities, setFacilities] = useState<FirestorePublicFacility[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [tabValue, setTabValue] = useState(0);
   const [selectedEvent, setSelectedEvent] = useState<FirestoreEvent | null>(null);
+  const [selectedShop, setSelectedShop] = useState<FirestoreShop | null>(null);
   const [approvalDialog, setApprovalDialog] = useState(false);
+  const [shopApprovalDialog, setShopApprovalDialog] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
+  const [migratingShops, setMigratingShops] = useState(false);
 
   // 管理者権限チェック
   if (userData?.role !== 'admin') {
@@ -67,7 +76,15 @@ export default function AdminPanel() {
   }
 
   useEffect(() => {
-    fetchEvents();
+    if (tabValue < 3) {
+      fetchEvents();
+    } else if (tabValue === 3) {
+      // ユーザー管理タブ - UserManagementコンポーネントが独自に処理
+    } else if (tabValue === 4) {
+      fetchShops();
+    } else if (tabValue === 5) {
+      fetchFacilities();
+    }
   }, [tabValue]);
 
   const fetchEvents = async () => {
@@ -109,6 +126,71 @@ export default function AdminPanel() {
       setError('イベントの取得に失敗しました。');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchShops = async () => {
+    try {
+      setLoading(true);
+      setError('');
+
+      // 全店舗を取得してクライアント側でフィルタリング
+      // approvalStatusがないものも承認待ちとして扱う
+      const shopsQuery = query(collection(db, 'shops'));
+      const querySnapshot = await getDocs(shopsQuery);
+      const shopsData = querySnapshot.docs.map(doc => {
+        const data = doc.data() as any;
+        
+        // approvalStatusがない場合はpendingとして扱う
+        if (!data.approvalStatus) {
+          data.approvalStatus = 'pending';
+        }
+        
+        return { id: doc.id, ...data } as FirestoreShop;
+      }).filter(shop => shop.approvalStatus === 'pending'); // pending のみフィルタ
+
+      setShops(shopsData);
+    } catch (error: any) {
+      console.error('店舗取得エラー:', error);
+      setError('店舗の取得に失敗しました。');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchFacilities = async () => {
+    try {
+      setLoading(true);
+      setError('');
+
+      const facilitiesQuery = query(collection(db, 'publicFacilities'));
+      const querySnapshot = await getDocs(facilitiesQuery);
+      const facilitiesData = querySnapshot.docs.map(doc => {
+        const data = doc.data() as any;
+        return { id: doc.id, ...data } as FirestorePublicFacility;
+      });
+
+      setFacilities(facilitiesData);
+    } catch (error: any) {
+      console.error('公共施設取得エラー:', error);
+      setError('公共施設の取得に失敗しました。');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleFacilityStatus = async (facilityId: string, currentStatus: boolean) => {
+    try {
+      const facilityRef = doc(db, 'publicFacilities', facilityId);
+      await updateDoc(facilityRef, {
+        isActive: !currentStatus,
+      });
+
+      // リストを更新
+      await fetchFacilities();
+    } catch (error: any) {
+      console.error('公共施設ステータス更新エラー:', error);
+      setError('公共施設のステータス更新に失敗しました。');
     }
   };
 
@@ -154,6 +236,86 @@ export default function AdminPanel() {
     }
   };
 
+  const handleApproveShop = async (shopId: string) => {
+    try {
+      const shopRef = doc(db, 'shops', shopId);
+      await updateDoc(shopRef, {
+        approvalStatus: 'approved',
+        approvedAt: new Date(),
+      });
+
+      // UIを更新
+      fetchShops();
+    } catch (error: any) {
+      console.error('店舗承認エラー:', error);
+      setError('店舗の承認に失敗しました。');
+    }
+  };
+
+  const handleRejectShop = async (shopId: string, reason: string) => {
+    try {
+      const shopRef = doc(db, 'shops', shopId);
+      await updateDoc(shopRef, {
+        approvalStatus: 'rejected',
+        rejectionReason: reason || '理由なし',
+        rejectedAt: new Date(),
+      });
+
+      // UIを更新
+      fetchShops();
+      setShopApprovalDialog(false);
+      setRejectionReason('');
+      setSelectedShop(null);
+    } catch (error: any) {
+      console.error('店舗却下エラー:', error);
+      setError('店舗の却下に失敗しました。');
+    }
+  };
+
+  // 既存店舗のapprovalStatusを一括でpendingに設定するマイグレーション
+  const migrateExistingShops = async () => {
+    try {
+      setMigratingShops(true);
+      setError('');
+      
+      // 全店舗を取得
+      const shopsQuery = query(collection(db, 'shops'));
+      const querySnapshot = await getDocs(shopsQuery);
+      
+      const batch = writeBatch(db);
+      let updatedCount = 0;
+      
+      querySnapshot.docs.forEach((doc) => {
+        const data = doc.data();
+        if (!data.approvalStatus) {
+          const shopRef = doc.ref;
+          batch.update(shopRef, {
+            approvalStatus: 'pending',
+            updatedAt: new Date(),
+          });
+          updatedCount++;
+        }
+      });
+      
+      if (updatedCount > 0) {
+        await batch.commit();
+        console.log(`${updatedCount}件の店舗のapprovalStatusをpendingに設定しました`);
+        
+        // UIを更新
+        await fetchShops();
+        
+        alert(`${updatedCount}件の既存店舗を承認待ちリストに追加しました。`);
+      } else {
+        alert('マイグレーションが必要な店舗はありませんでした。');
+      }
+    } catch (error: any) {
+      console.error('店舗マイグレーションエラー:', error);
+      setError('店舗の一括更新に失敗しました。');
+    } finally {
+      setMigratingShops(false);
+    }
+  };
+
   const formatDate = (timestamp: any) => {
     if (!timestamp) return '';
     const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
@@ -188,9 +350,12 @@ export default function AdminPanel() {
         {/* タブ */}
         <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
           <Tabs value={tabValue} onChange={handleTabChange}>
-            <Tab label="承認待ち" />
-            <Tab label="承認済み" />
-            <Tab label="却下済み" />
+            <Tab label="イベント承認待ち" />
+            <Tab label="承認済みイベント" />
+            <Tab label="却下イベント" />
+            <Tab label="ユーザー管理" />
+            <Tab label="店舗承認待ち" />
+            <Tab label="公共施設管理" />
           </Tabs>
         </Box>
 
@@ -352,6 +517,229 @@ export default function AdminPanel() {
           </Grid>
         </TabPanel>
 
+        {/* ユーザー管理タブ */}
+        <TabPanel value={tabValue} index={3}>
+          <UserManagement />
+        </TabPanel>
+
+        {/* 店舗承認待ちタブ */}
+        <TabPanel value={tabValue} index={4}>
+          {/* マイグレーション機能 */}
+          <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="h5" component="h2">
+              店舗承認管理
+            </Typography>
+            <Button
+              variant="outlined"
+              onClick={migrateExistingShops}
+              disabled={migratingShops}
+              startIcon={migratingShops ? <CircularProgress size={20} /> : <Business />}
+            >
+              {migratingShops ? 'マイグレーション中...' : '既存店舗を承認待ちに追加'}
+            </Button>
+          </Box>
+          
+          {loading && <CircularProgress />}
+          {shops.length === 0 && !loading ? (
+            <Card sx={{ textAlign: 'center', py: 6 }}>
+              <CardContent>
+                <CheckCircle sx={{ fontSize: 64, color: 'success.main', mb: 2 }} />
+                <Typography variant="h6" gutterBottom>
+                  承認待ちの店舗はありません
+                </Typography>
+                <Typography color="text.secondary" sx={{ mb: 2 }}>
+                  現在承認が必要な店舗はありません
+                </Typography>
+                <Typography color="text.secondary" variant="body2">
+                  既存の店舗がある場合は、上の「既存店舗を承認待ちに追加」ボタンで一括追加できます。
+                </Typography>
+              </CardContent>
+            </Card>
+          ) : (
+            <Grid container spacing={3}>
+              {shops.map((shop) => (
+                <Grid item xs={12} md={6} key={shop.id}>
+                  <Card>
+                    <CardContent>
+                      <Typography variant="h6" gutterBottom>
+                        {shop.shopName}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        カテゴリ: {shop.shopCategory}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        住所: {shop.address}
+                      </Typography>
+                      <Typography variant="body2" sx={{ mb: 2 }}>
+                        {shop.description}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        こだわりポイント: {shop.maniacPoint}
+                      </Typography>
+                      
+                      {/* 提供サービス */}
+                      {shop.services && shop.services.length > 0 && (
+                        <Box sx={{ mb: 2 }}>
+                          <Typography variant="caption" color="primary" fontWeight="bold" display="block" sx={{ mb: 1 }}>
+                            提供サービス ({shop.services.length}件)
+                          </Typography>
+                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                            {shop.services.slice(0, 6).map((service) => (
+                              <Chip
+                                key={service}
+                                label={`${SERVICE_ICONS[service] || '⭐'} ${service}`}
+                                size="small"
+                                variant="outlined"
+                                color="secondary"
+                                sx={{ fontSize: '0.7rem' }}
+                              />
+                            ))}
+                            {shop.services.length > 6 && (
+                              <Chip
+                                label={`+${shop.services.length - 6}`}
+                                size="small"
+                                variant="outlined"
+                                color="default"
+                                sx={{ fontSize: '0.7rem' }}
+                              />
+                            )}
+                          </Box>
+                        </Box>
+                      )}
+                      
+                      <Grid container spacing={2} sx={{ mt: 2 }}>
+                        <Grid item xs={12}>
+                          <Box sx={{ display: 'flex', gap: 1 }}>
+                            <Button
+                              variant="contained"
+                              color="success"
+                              startIcon={<CheckCircle />}
+                              onClick={() => handleApproveShop(shop.id)}
+                              fullWidth
+                            >
+                              承認
+                            </Button>
+                            <Button
+                              variant="outlined"
+                              color="error"
+                              startIcon={<Cancel />}
+                              onClick={() => {
+                                setSelectedShop(shop);
+                                setShopApprovalDialog(true);
+                              }}
+                              fullWidth
+                            >
+                              却下
+                            </Button>
+                          </Box>
+                        </Grid>
+                      </Grid>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+          )}
+        </TabPanel>
+
+        {/* 公共施設管理タブ */}
+        <TabPanel value={tabValue} index={5}>
+          <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="h5" component="h2">
+              公共施設管理
+            </Typography>
+            <Button
+              variant="contained"
+              startIcon={<Add />}
+              onClick={() => window.location.href = '/admin/facility/new'}
+            >
+              新規公共施設追加
+            </Button>
+          </Box>
+
+          {loading ? (
+            <Box display="flex" justifyContent="center" my={4}>
+              <CircularProgress />
+            </Box>
+          ) : facilities.length === 0 ? (
+            <Card sx={{ textAlign: 'center', py: 6 }}>
+              <CardContent>
+                <Business sx={{ fontSize: 64, color: 'action.active', mb: 2 }} />
+                <Typography variant="h6" gutterBottom>
+                  公共施設が登録されていません
+                </Typography>
+                <Typography color="text.secondary" sx={{ mb: 2 }}>
+                  新規公共施設を追加してください
+                </Typography>
+                <Button
+                  variant="contained"
+                  startIcon={<Add />}
+                  onClick={() => window.location.href = '/admin/facility/new'}
+                >
+                  新規追加
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <Grid container spacing={3}>
+              {facilities.map((facility) => (
+                <Grid item xs={12} md={6} key={facility.id}>
+                  <Card>
+                    <CardContent>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                        <Typography variant="h6" gutterBottom>
+                          {facility.name}
+                        </Typography>
+                        <Chip
+                          label={facility.isActive ? '表示中' : '非表示'}
+                          color={facility.isActive ? 'success' : 'default'}
+                          size="small"
+                        />
+                      </Box>
+                      
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                        {facility.facilityType}
+                      </Typography>
+                      
+                      <Typography variant="body2" sx={{ mb: 2 }}>
+                        {facility.description}
+                      </Typography>
+                      
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        <strong>住所:</strong> {facility.address}
+                      </Typography>
+                      
+                      {facility.phone && (
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                          <strong>電話:</strong> {facility.phone}
+                        </Typography>
+                      )}
+                      
+                      <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          onClick={() => window.location.href = `/admin/facility/${facility.id}`}
+                        >
+                          編集
+                        </Button>
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          color={facility.isActive ? 'error' : 'success'}
+                          onClick={() => toggleFacilityStatus(facility.id, facility.isActive)}
+                        >
+                          {facility.isActive ? '非表示にする' : '表示する'}
+                        </Button>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+          )}
+        </TabPanel>
+
         {/* 却下理由入力ダイアログ */}
         <Dialog open={approvalDialog} onClose={() => setApprovalDialog(false)} maxWidth="sm" fullWidth>
           <DialogTitle>イベント却下</DialogTitle>
@@ -378,6 +766,40 @@ export default function AdminPanel() {
             </Button>
             <Button 
               onClick={() => selectedEvent && handleRejectEvent(selectedEvent.id, rejectionReason)}
+              color="error"
+              variant="contained"
+            >
+              却下
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* 店舗却下理由入力ダイアログ */}
+        <Dialog open={shopApprovalDialog} onClose={() => setShopApprovalDialog(false)} maxWidth="sm" fullWidth>
+          <DialogTitle>店舗却下</DialogTitle>
+          <DialogContent>
+            <Typography gutterBottom>
+              「{selectedShop?.shopName}」を却下しますか？
+            </Typography>
+            <TextField
+              autoFocus
+              margin="dense"
+              label="却下理由（任意）"
+              fullWidth
+              multiline
+              rows={3}
+              variant="outlined"
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              sx={{ mt: 2 }}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setShopApprovalDialog(false)}>
+              キャンセル
+            </Button>
+            <Button 
+              onClick={() => selectedShop && handleRejectShop(selectedShop.id, rejectionReason)}
               color="error"
               variant="contained"
             >

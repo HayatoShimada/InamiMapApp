@@ -12,6 +12,7 @@ import ShopList from './pages/ShopList';
 import EventForm from './pages/EventForm';
 import EventList from './pages/EventList';
 import AdminPanel from './pages/AdminPanel';
+import PendingApproval from './pages/PendingApproval';
 import './App.css';
 
 // Material-UIテーマの設定
@@ -129,6 +130,11 @@ function App() {
                   <EventForm />
                 </ProtectedRoute>
               }
+            />
+            {/* 承認待ち画面 */}
+            <Route
+              path="/pending-approval"
+              element={<PendingApproval />}
             />
             {/* 管理者ルート */}
             <Route

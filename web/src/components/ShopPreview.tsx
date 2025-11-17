@@ -21,7 +21,7 @@ import {
   LocationOn,
   Schedule,
 } from '@mui/icons-material';
-import { FirestoreShop } from '../types/firebase';
+import { FirestoreShop, SERVICE_ICONS } from '../types/firebase';
 
 interface ShopPreviewProps {
   shop: FirestoreShop;
@@ -61,7 +61,7 @@ export default function ShopPreview({ shop, compact = false }: ShopPreviewProps)
       const username = value.substring(1);
       switch (platform) {
         case 'instagram': return `https://instagram.com/${username}`;
-        case 'twitter': return `https://twitter.com/${username}`;
+        case 'twitter': return `https://x.com/${username}`;
         default: return value;
       }
     }
@@ -105,6 +105,36 @@ export default function ShopPreview({ shop, compact = false }: ShopPreviewProps)
             <Typography variant="body2">
               {shop.maniacPoint}
             </Typography>
+          </Box>
+        )}
+
+        {/* 提供サービス */}
+        {shop.services && shop.services.length > 0 && (
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="caption" color="primary" fontWeight="bold" display="block" sx={{ mb: 1 }}>
+              提供サービス
+            </Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+              {shop.services.slice(0, compact ? 4 : 8).map((service) => (
+                <Chip
+                  key={service}
+                  label={`${SERVICE_ICONS[service] || '⭐'} ${service}`}
+                  size="small"
+                  variant="outlined"
+                  color="secondary"
+                  sx={{ fontSize: '0.75rem' }}
+                />
+              ))}
+              {shop.services.length > (compact ? 4 : 8) && (
+                <Chip
+                  label={`+${shop.services.length - (compact ? 4 : 8)}`}
+                  size="small"
+                  variant="outlined"
+                  color="default"
+                  sx={{ fontSize: '0.75rem' }}
+                />
+              )}
+            </Box>
           </Box>
         )}
 
@@ -206,7 +236,7 @@ export default function ShopPreview({ shop, compact = false }: ShopPreviewProps)
               href={formatSocialUrl('twitter', shop.socialMedia.twitter)}
               target="_blank"
               rel="noopener noreferrer"
-              title="Twitter/X"
+              title="X (旧Twitter)"
             >
               <Twitter />
             </IconButton>

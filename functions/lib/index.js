@@ -1,10 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.healthCheck = exports.onNewEventSubmission = exports.onNewShopRegistration = exports.onEventApprovalChange = exports.onEventStatusChange = exports.processEventImage = exports.processShopImage = void 0;
+exports.healthCheck = exports.expandShortUrl = exports.onNewEventSubmission = exports.onNewShopRegistration = exports.onEventApprovalChange = exports.onEventStatusChange = exports.processEventImage = exports.processShopImage = void 0;
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const imageProcessing_1 = require("./imageProcessing");
 const notifications_1 = require("./notifications");
+const expandShortUrl_1 = require("./expandShortUrl");
 // Firebase Admin SDK初期化（一度だけ）
 if (!admin.apps.length) {
     admin.initializeApp();
@@ -17,6 +18,8 @@ exports.onEventStatusChange = notifications_1.notificationHandlers.onEventStatus
 exports.onEventApprovalChange = notifications_1.notificationHandlers.onEventApprovalChange;
 exports.onNewShopRegistration = notifications_1.notificationHandlers.onNewShopRegistration;
 exports.onNewEventSubmission = notifications_1.notificationHandlers.onNewEventSubmission;
+// URL処理関連のCloud Functions
+exports.expandShortUrl = expandShortUrl_1.expandShortUrl;
 // ヘルスチェック用のHTTPS関数
 exports.healthCheck = functions.https.onRequest((req, res) => {
     res.json({

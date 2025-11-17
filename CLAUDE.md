@@ -151,12 +151,27 @@ Based on TABLE.md specifications:
 
 ## Key Development Workflows
 
+### User Approval System (NEW - Issue #8)
+1. New users sign up via Google authentication
+2. Users are initially set to `approvalStatus: 'pending'`
+3. Admin users review and approve/reject new users via User Management page
+4. Only approved users can access shop and event management features
+5. Rejected users see explanation and contact information
+
+### Shop Approval System (NEW - Issue #9)
+1. Shop owners register shops via web admin panel
+2. Shops are stored with `approvalStatus: 'pending'`
+3. Admin users review and approve/reject shops
+4. Only approved shops are visible in mobile app and public interfaces
+5. Mobile app filters out unapproved shops automatically
+
 ### Event Approval System
 1. Shop owners submit events via web admin panel
-2. Events are stored with `approval_status: 'pending'`
-3. Admin users (with `role: 'admin'`) review and approve/reject events
+2. Events are stored with `approvalStatus: 'pending'`
+3. Admin users review and approve/reject events
 4. Approved events become visible in mobile app
-5. Cloud Functions handle automated processing (image resize, notifications)
+5. Events now support categories and detail URLs
+6. Cloud Functions handle automated processing (image resize, notifications)
 
 ### Image Management  
 - Maximum 5 images per shop or event (enforced client-side and server-side)
@@ -216,3 +231,68 @@ Based on TABLE.md specifications:
 - **Google Dependencies**: Requires Google Sign-in for shop owners and Google Maps API for mobile
 - **Local Development**: Use Firebase emulators to avoid production costs during development
 - **Security**: Firestore rules ensure shop owners can only edit their own content
+
+## Recent Feature Updates (November 2024)
+
+### Completed Issues:
+
+1. **Issue #9: Shop Approval System**
+   - Implemented comprehensive shop approval workflow
+   - Updated mobile app to only display approved shops
+   - Added approval status indicators in admin dashboard
+
+2. **Issue #8: User Approval System** 
+   - Added user approval workflow for new registrations
+   - Created User Management interface for admins
+   - Implemented pending approval screen with status notifications
+
+3. **Issue #6: Dashboard Navigation Bug**
+   - Fixed missing onClick handler for shop card "表示" button
+   - Improved navigation consistency across admin interface
+
+4. **Issue #3: Contact Information Update**
+   - Updated all contact references from 南砺市役所 to 85-Store
+   - Address: 富山県南砺市井波3110-1
+   - Phone: 0763-82-5850
+   - Email: info@85-store.com
+
+5. **Issue #10: Twitter to X Rebranding**
+   - Updated all Twitter references to "X (旧Twitter)"
+   - Changed URLs from twitter.com to x.com
+   - Updated form labels and tooltips
+
+6. **Issue #4: Open Source Development Information**
+   - Added comprehensive open source section to homepage
+   - Emphasized community-driven development approach
+   - Included developer participation guidelines
+
+7. **Issue #7: Google Maps URL Tutorial**
+   - Added step-by-step instructions for obtaining Google Maps URLs
+   - Improved user guidance for coordinate extraction
+   - Enhanced form usability for shop location setup
+
+8. **Issue #1: Event Detail URLs**
+   - Added optional detailUrl field to event forms
+   - Updated data models across web and mobile platforms
+   - Enhanced event information with external links
+
+9. **Issue #2: Event Categories**
+   - Implemented event categorization system
+   - Added category selection in event forms
+   - Categories include: 祭り・イベント, ワークショップ, 展示・ギャラリー, etc.
+   - Enabled category-based filtering and display
+
+### Technical Improvements:
+- Enhanced type safety across TypeScript interfaces
+- Improved error handling and user feedback
+- Strengthened data validation and security rules
+- Updated mobile app models for new features
+- Added comprehensive approval status management
+
+### Contact & Support:
+**運営**: 85-Store
+- 住所: 富山県南砺市井波3110-1  
+- 電話: 0763-82-5850
+- Email: info@85-store.com
+
+For development inquiries, please contact 85-Store or submit GitHub issues.

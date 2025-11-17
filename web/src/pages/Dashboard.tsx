@@ -18,12 +18,15 @@ import {
   Add,
   Edit,
   Visibility,
+  Schedule,
 } from '@mui/icons-material';
-import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
+import { collection, query, where, orderBy, getDocs, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../contexts/AuthContext';
+import { useFirestore } from '../hooks/useFirestore';
 import { FirestoreEvent, FirestoreShop } from '../types/firebase';
 import { EVENT_PROGRESS_LABELS, APPROVAL_STATUS_LABELS } from '../types/firebase';
+import QuickTemporaryStatusModal from '../components/QuickTemporaryStatusModal';
 
 export default function Dashboard() {
   const { currentUser, userData } = useAuth();
@@ -32,6 +35,14 @@ export default function Dashboard() {
   const [events, setEvents] = useState<FirestoreEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
+  const [temporaryStatusModal, setTemporaryStatusModal] = useState<{
+    open: boolean;
+    shopId?: string;
+    shopName?: string;
+    currentStatus?: FirestoreShop['temporaryStatus'];
+  }>({ open: false });
+
+  const { updateDocument } = useFirestore<FirestoreShop>('shops');
 
   useEffect(() => {
     fetchData();
@@ -61,6 +72,14 @@ export default function Dashboard() {
       const shopsData = shopsSnapshot.docs.map(doc => {
         const data = doc.data() as any;
         console.log('ダッシュボード: 店舗データ:', doc.id, data);
+        
+        // approvalStatusが存在しない場合のデフォルト値設定
+        if (!data.approvalStatus) {
+          console.log('approvalStatusが未設定の店舗を検出:', doc.id);
+          // 既存店舗はデフォルトで承認待ちとする
+          data.approvalStatus = 'pending';
+        }
+        
         return { id: doc.id, ...data } as FirestoreShop;
       });
       console.log('ダッシュボード: 変換後の店舗データ:', shopsData);
@@ -123,6 +142,45 @@ export default function Dashboard() {
     }
   };
 
+  const handleTemporaryStatusSave = async (data: {
+    isTemporaryClosed: boolean;
+    isReducedHours: boolean;
+    startDate?: Date;
+    endDate?: Date;
+    message?: string;
+  }) => {
+    if (!temporaryStatusModal.shopId) return;
+
+    try {
+      const temporaryStatus = (data.isTemporaryClosed || data.isReducedHours) ? {
+        isTemporaryClosed: data.isTemporaryClosed,
+        isReducedHours: data.isReducedHours,
+        startDate: data.startDate ? Timestamp.fromDate(data.startDate) : undefined,
+        endDate: data.endDate ? Timestamp.fromDate(data.endDate) : undefined,
+        message: data.message,
+      } : undefined;
+
+      await updateDocument(temporaryStatusModal.shopId, { temporaryStatus });
+      
+      // 店舗リストを更新
+      fetchData();
+      
+      setTemporaryStatusModal({ open: false });
+    } catch (error) {
+      console.error('時短営業設定の保存エラー:', error);
+      setError('時短営業設定の保存に失敗しました');
+    }
+  };
+
+  const openTemporaryStatusModal = (shop: FirestoreShop) => {
+    setTemporaryStatusModal({
+      open: true,
+      shopId: shop.id,
+      shopName: shop.shopName,
+      currentStatus: shop.temporaryStatus,
+    });
+  };
+
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
         {/* ウェルカムメッセージ */}
@@ -176,11 +234,39 @@ export default function Dashboard() {
                             <Typography variant="body2" color="text.secondary" gutterBottom>
                               {shop.description}
                             </Typography>
-                            <Chip 
-                              label={shop.shopCategory} 
-                              size="small" 
-                              sx={{ mt: 1 }}
-                            />
+                            <Box sx={{ mt: 1, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                              <Chip 
+                                label={shop.shopCategory} 
+                                size="small"
+                              />
+                              <Chip 
+                                label={
+                                  shop.approvalStatus === 'approved' ? '承認済み' :
+                                  shop.approvalStatus === 'pending' ? '承認待ち' :
+                                  shop.approvalStatus === 'rejected' ? '却下' : '承認待ち'
+                                }
+                                size="small"
+                                color={
+                                  shop.approvalStatus === 'approved' ? 'success' :
+                                  shop.approvalStatus === 'pending' ? 'warning' :
+                                  shop.approvalStatus === 'rejected' ? 'error' : 'warning'
+                                }
+                              />
+                              {shop.temporaryStatus?.isTemporaryClosed && (
+                                <Chip 
+                                  label="臨時休業中" 
+                                  size="small"
+                                  color="error"
+                                />
+                              )}
+                              {shop.temporaryStatus?.isReducedHours && (
+                                <Chip 
+                                  label="時短営業中" 
+                                  size="small"
+                                  color="warning"
+                                />
+                              )}
+                            </Box>
                           </CardContent>
                           <CardActions>
                             <Button 
@@ -193,9 +279,20 @@ export default function Dashboard() {
                             <Button 
                               size="small" 
                               startIcon={<Visibility />}
+                              onClick={() => navigate(`/shop/${shop.id}`)}
                             >
                               表示
                             </Button>
+                            {shop.approvalStatus === 'approved' && (
+                              <Button 
+                                size="small" 
+                                startIcon={<Schedule />}
+                                onClick={() => openTemporaryStatusModal(shop)}
+                                color="secondary"
+                              >
+                                時短営業設定
+                              </Button>
+                            )}
                           </CardActions>
                         </Card>
                       </Grid>
@@ -245,6 +342,15 @@ export default function Dashboard() {
                             <Typography variant="body2" color="text.secondary" gutterBottom>
                               {formatDate(event.eventTimeStart)}
                             </Typography>
+                            {event.eventCategory && (
+                              <Chip 
+                                label={event.eventCategory} 
+                                size="small" 
+                                color="primary"
+                                variant="outlined"
+                                sx={{ mb: 1 }}
+                              />
+                            )}
                             <Typography variant="body2" gutterBottom>
                               {event.description}
                             </Typography>
@@ -279,6 +385,15 @@ export default function Dashboard() {
             </Card>
           </Grid>
         </Grid>
+
+        {/* 時短営業設定モーダル */}
+        <QuickTemporaryStatusModal
+          open={temporaryStatusModal.open}
+          onClose={() => setTemporaryStatusModal({ open: false })}
+          onSave={handleTemporaryStatusSave}
+          shopName={temporaryStatusModal.shopName || ''}
+          currentStatus={temporaryStatusModal.currentStatus}
+        />
     </Container>
   );
 }

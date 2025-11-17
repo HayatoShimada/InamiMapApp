@@ -23,8 +23,23 @@ export default function ProtectedRoute({ children, requireAdmin = false }: Prote
     return <Navigate to="/login" replace />;
   }
 
+  // 管理者権限が必要なページで管理者でない場合は拒否
   if (requireAdmin && userData?.role !== 'admin') {
     return <Navigate to="/dashboard" replace />;
+  }
+
+  // 管理者の場合は承認チェックをスキップ
+  if (userData?.role === 'admin') {
+    return <>{children}</>;
+  }
+
+  // 一般ユーザーの承認状態チェック
+  if (userData?.approvalStatus === 'rejected') {
+    return <Navigate to="/pending-approval" replace />;
+  }
+
+  if (userData?.approvalStatus !== 'approved') {
+    return <Navigate to="/pending-approval" replace />;
   }
 
   return <>{children}</>;

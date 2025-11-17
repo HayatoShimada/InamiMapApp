@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:provider/provider.dart';
-import '../providers/map_data_provider.dart';
-import '../models/map_point.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../models/shop_model.dart';
+import '../models/event_model.dart';
+import '../widgets/favorite_button.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -15,103 +16,227 @@ class MapScreen extends StatefulWidget {
 class _MapScreenState extends State<MapScreen> {
   final MapController _mapController = MapController();
   
-  // Inami, Toyama Prefecture coordinates
+  // 井波町の中心座標
   static const LatLng _inamiCenter = LatLng(36.5569, 136.9628);
+  
+  List<ShopModel> _shops = [];
+  List<EventModel> _events = [];
+  bool _isLoading = true;
+  String _selectedFilter = 'すべて';
 
   @override
   void initState() {
     super.initState();
-    // Load map data when screen initializes
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<MapDataProvider>().loadMapPoints();
+    _loadMapData();
+  }
+
+  Future<void> _loadMapData() async {
+    setState(() {
+      _isLoading = true;
     });
+
+    try {
+      // 承認済み店舗データを取得
+      final shopsSnapshot = await FirebaseFirestore.instance
+          .collection('shops')
+          .where('approvalStatus', isEqualTo: 'approved')
+          .get();
+
+      // 承認済みイベントデータを取得
+      final eventsSnapshot = await FirebaseFirestore.instance
+          .collection('events')
+          .where('approvalStatus', isEqualTo: 'approved')
+          .get();
+
+      setState(() {
+        _shops = shopsSnapshot.docs
+            .map((doc) => ShopModel.fromFirestore(doc))
+            .toList();
+        _events = eventsSnapshot.docs
+            .map((doc) => EventModel.fromFirestore(doc))
+            .toList();
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('データの読み込みに失敗しました: $e')),
+        );
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Inami Map'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        title: const Text('地図'),
+        backgroundColor: Colors.blue,
+        foregroundColor: Colors.white,
         actions: [
           IconButton(
             icon: const Icon(Icons.my_location),
-            onPressed: _centerOnInami,
-            tooltip: 'Center on Inami',
+            onPressed: () => _centerOnInami(),
+            tooltip: '井波町を中心に表示',
+          ),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadMapData,
+            tooltip: '更新',
           ),
         ],
-      ),
-      body: Consumer<MapDataProvider>(
-        builder: (context, mapDataProvider, child) {
-          return Column(
-            children: [
-              Expanded(
-                flex: 3,
-                child: FlutterMap(
-                  mapController: _mapController,
-                  options: const MapOptions(
-                    initialCenter: _inamiCenter,
-                    initialZoom: 15.0,
-                    minZoom: 10.0,
-                    maxZoom: 18.0,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(60),
+          child: Container(
+            height: 50,
+            margin: const EdgeInsets.only(bottom: 8),
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              children: [
+                'すべて',
+                '店舗のみ',
+                'イベントのみ',
+              ].map((filter) {
+                final isSelected = _selectedFilter == filter;
+                return Container(
+                  margin: const EdgeInsets.only(right: 8),
+                  child: FilterChip(
+                    label: Text(filter),
+                    selected: isSelected,
+                    onSelected: (selected) {
+                      setState(() {
+                        _selectedFilter = filter;
+                      });
+                    },
+                    backgroundColor: Colors.white,
+                    selectedColor: Colors.blue.shade100,
+                    labelStyle: TextStyle(
+                      color: isSelected ? Colors.blue : Colors.grey.shade700,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    ),
                   ),
-                  children: [
-                    TileLayer(
-                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      userAgentPackageName: 'com.inamimapapp.inami_map_app',
+                );
+              }).toList(),
+            ),
+          ),
+        ),
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: FlutterMap(
+                    mapController: _mapController,
+                    options: const MapOptions(
+                      initialCenter: _inamiCenter,
+                      initialZoom: 13.0,
+                      minZoom: 10.0,
+                      maxZoom: 18.0,
                     ),
-                    MarkerLayer(
-                      markers: _buildMarkers(mapDataProvider.mapPoints),
-                    ),
-                  ],
+                    children: [
+                      TileLayer(
+                        urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                        userAgentPackageName: 'com.inamimapapp.inami_map_app',
+                      ),
+                      MarkerLayer(
+                        markers: _buildMarkers(),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              Expanded(
-                flex: 1,
-                child: _buildPointsList(mapDataProvider.mapPoints),
-              ),
-            ],
-          );
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          context.read<MapDataProvider>().loadMapPoints();
-        },
-        tooltip: 'Refresh',
-        child: const Icon(Icons.refresh),
-      ),
+                Expanded(
+                  flex: 1,
+                  child: _buildItemsList(),
+                ),
+              ],
+            ),
     );
   }
 
-  List<Marker> _buildMarkers(List<MapPoint> points) {
-    return points.map((point) {
-      return Marker(
-        point: LatLng(point.latitude, point.longitude),
-        width: 40,
-        height: 40,
-        child: GestureDetector(
-          onTap: () => _showPointDetails(point),
-          child: const Icon(
-            Icons.location_pin,
-            color: Colors.red,
-            size: 40,
-          ),
-        ),
-      );
-    }).toList();
+  List<Marker> _buildMarkers() {
+    List<Marker> markers = [];
+
+    // 店舗マーカー
+    if (_selectedFilter == 'すべて' || _selectedFilter == '店舗のみ') {
+      for (final shop in _shops) {
+        if (shop.location != null) {
+          markers.add(
+            Marker(
+              point: LatLng(shop.location!.latitude, shop.location!.longitude),
+              width: 40,
+              height: 40,
+              child: GestureDetector(
+                onTap: () => _showShopDetails(shop),
+                child: const Icon(
+                  Icons.store,
+                  color: Colors.blue,
+                  size: 40,
+                ),
+              ),
+            ),
+          );
+        }
+      }
+    }
+
+    // イベントマーカー
+    if (_selectedFilter == 'すべて' || _selectedFilter == 'イベントのみ') {
+      for (final event in _events) {
+        // イベントの場所が参加店舗に基づく場合
+        if (event.participatingShops != null && event.participatingShops!.isNotEmpty) {
+          final participatingShop = _shops.firstWhere(
+            (shop) => event.participatingShops!.contains(shop.id),
+            orElse: () => _shops.first,
+          );
+          
+          if (participatingShop.location != null) {
+            markers.add(
+              Marker(
+                point: LatLng(
+                  participatingShop.location!.latitude,
+                  participatingShop.location!.longitude,
+                ),
+                width: 40,
+                height: 40,
+                child: GestureDetector(
+                  onTap: () => _showEventDetails(event),
+                  child: const Icon(
+                    Icons.event,
+                    color: Colors.green,
+                    size: 40,
+                  ),
+                ),
+              ),
+            );
+          }
+        }
+      }
+    }
+
+    return markers;
   }
 
-  Widget _buildPointsList(List<MapPoint> points) {
-    if (points.isEmpty) {
+  Widget _buildItemsList() {
+    final filteredShops = _selectedFilter == 'イベントのみ' ? <ShopModel>[] : _shops;
+    final filteredEvents = _selectedFilter == '店舗のみ' ? <EventModel>[] : _events;
+    
+    final totalItems = filteredShops.length + filteredEvents.length;
+
+    if (totalItems == 0) {
       return const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.location_off, size: 48, color: Colors.grey),
             SizedBox(height: 16),
-            Text('No points of interest loaded'),
-            Text('Tap refresh to load data'),
+            Text('表示するアイテムがありません'),
+            Text('フィルターを変更するか、更新してみてください'),
           ],
         ),
       );
@@ -136,32 +261,38 @@ class _MapScreenState extends State<MapScreen> {
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             child: Text(
-              'Points of Interest (${points.length})',
+              '地図上のアイテム ($totalItems)',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
             ),
           ),
           Expanded(
-            child: ListView.builder(
-              itemCount: points.length,
-              itemBuilder: (context, index) {
-                final point = points[index];
-                return ListTile(
-                  leading: const Icon(Icons.place, color: Colors.red),
-                  title: Text(point.name),
-                  subtitle: Text(
-                    point.description,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+            child: ListView(
+              children: [
+                ...filteredShops.map((shop) => ListTile(
+                  leading: const Icon(Icons.store, color: Colors.blue),
+                  title: Text(shop.shopName),
+                  subtitle: Text(shop.shopCategory),
+                  trailing: FavoriteButton(
+                    itemType: 'shop',
+                    itemId: shop.id,
+                    size: 20,
                   ),
-                  onTap: () => _centerOnPoint(point),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.info_outline),
-                    onPressed: () => _showPointDetails(point),
+                  onTap: () => _centerOnShop(shop),
+                )),
+                ...filteredEvents.map((event) => ListTile(
+                  leading: const Icon(Icons.event, color: Colors.green),
+                  title: Text(event.eventName),
+                  subtitle: Text(event.location),
+                  trailing: FavoriteButton(
+                    itemType: 'event',
+                    itemId: event.id,
+                    size: 20,
                   ),
-                );
-              },
+                  onTap: () => _centerOnEvent(event),
+                )),
+              ],
             ),
           ),
         ],
@@ -170,82 +301,247 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   void _centerOnInami() {
-    _mapController.move(_inamiCenter, 15.0);
+    _mapController.move(_inamiCenter, 13.0);
   }
 
-  void _centerOnPoint(MapPoint point) {
-    _mapController.move(LatLng(point.latitude, point.longitude), 17.0);
+  void _centerOnShop(ShopModel shop) {
+    if (shop.location != null) {
+      _mapController.move(
+        LatLng(shop.location!.latitude, shop.location!.longitude),
+        17.0,
+      );
+    }
   }
 
-  void _showPointDetails(MapPoint point) {
+  void _centerOnEvent(EventModel event) {
+    if (event.participatingShops != null && event.participatingShops!.isNotEmpty) {
+      final participatingShop = _shops.firstWhere(
+        (shop) => event.participatingShops!.contains(shop.id),
+        orElse: () => _shops.first,
+      );
+      
+      if (participatingShop.location != null) {
+        _mapController.move(
+          LatLng(
+            participatingShop.location!.latitude,
+            participatingShop.location!.longitude,
+          ),
+          17.0,
+        );
+      }
+    }
+  }
+
+  void _showShopDetails(ShopModel shop) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.4,
-        maxChildSize: 0.8,
-        minChildSize: 0.3,
-        expand: false,
-        builder: (context, scrollController) => Container(
-          padding: const EdgeInsets.all(24),
+      backgroundColor: Colors.transparent,
+      builder: (context) => _buildShopDetailSheet(shop),
+    );
+  }
+
+  void _showEventDetails(EventModel event) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _buildEventDetailSheet(event),
+    );
+  }
+
+  Widget _buildShopDetailSheet(ShopModel shop) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.6,
+      maxChildSize: 0.9,
+      minChildSize: 0.3,
+      builder: (context, scrollController) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  const Icon(Icons.place, color: Colors.red, size: 32),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      point.name,
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
+              Container(
+                margin: const EdgeInsets.only(top: 8),
+                height: 4,
+                width: 40,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.store, color: Colors.blue, size: 32),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              shop.shopName,
+                              style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          FavoriteButton(
+                            itemType: 'shop',
+                            itemId: shop.id,
+                            size: 32,
+                          ),
+                        ],
                       ),
-                    ),
+                      const SizedBox(height: 16),
+                      Text(
+                        shop.description,
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          const Icon(Icons.location_on, color: Colors.red),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              shop.address,
+                              style: const TextStyle(fontSize: 16),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            _centerOnShop(shop);
+                          },
+                          icon: const Icon(Icons.center_focus_strong),
+                          label: const Text('地図で表示'),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Text(
-                point.description,
-                style: Theme.of(context).textTheme.bodyLarge,
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        _centerOnPoint(point);
-                      },
-                      icon: const Icon(Icons.center_focus_strong),
-                      label: const Text('Center on Map'),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        // TODO: Implement navigation
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Navigation coming soon!')),
-                        );
-                      },
-                      icon: const Icon(Icons.navigation),
-                      label: const Text('Navigate'),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ],
           ),
-        ),
-      ),
+        );
+      },
     );
+  }
+
+  Widget _buildEventDetailSheet(EventModel event) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.6,
+      maxChildSize: 0.9,
+      minChildSize: 0.3,
+      builder: (context, scrollController) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              Container(
+                margin: const EdgeInsets.only(top: 8),
+                height: 4,
+                width: 40,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.event, color: Colors.green, size: 32),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              event.eventName,
+                              style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          FavoriteButton(
+                            itemType: 'event',
+                            itemId: event.id,
+                            size: 32,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        event.description,
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          const Icon(Icons.schedule, color: Colors.blue),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              '${_formatDateTime(event.eventTimeStart)} - ${_formatDateTime(event.eventTimeEnd)}',
+                              style: const TextStyle(fontSize: 16),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          const Icon(Icons.location_on, color: Colors.red),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              event.location,
+                              style: const TextStyle(fontSize: 16),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            _centerOnEvent(event);
+                          },
+                          icon: const Icon(Icons.center_focus_strong),
+                          label: const Text('地図で表示'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  String _formatDateTime(DateTime dateTime) {
+    return '${dateTime.month}/${dateTime.day} ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
   }
 }

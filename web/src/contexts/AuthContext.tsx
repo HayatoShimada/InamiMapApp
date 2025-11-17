@@ -86,6 +86,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         displayName: user.displayName || '',
         photoURL: user.photoURL || undefined,
         role: 'shop_owner', // デフォルトは店主権限
+        approvalStatus: 'pending', // 新規ユーザーは承認待ち
         createdAt: serverTimestamp() as any,
       };
       
