@@ -30,7 +30,8 @@ import {
   YouTube,
   Phone,
   Email,
-  Schedule
+  Schedule,
+  LocationOn
 } from '@mui/icons-material';
 import { Timestamp } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
@@ -60,6 +61,7 @@ export default function ShopForm() {
   const [error, setError] = useState<string>('');
   const [shopData, setShopData] = useState<FirestoreShop | null>(null);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [extractingCoords, setExtractingCoords] = useState(false);
 
   const { getDocument, addDocument, updateDocument } = useFirestore<FirestoreShop>('shops');
 
@@ -67,6 +69,8 @@ export default function ShopForm() {
     control,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<ShopFormData>({
     defaultValues: {
@@ -97,6 +101,67 @@ export default function ShopForm() {
   });
 
   const isEditMode = !!id;
+
+  // 現在のGoogleマップURLを監視
+  const currentGoogleMapUrl = watch('googleMapUrl');
+
+  // GoogleマップURLから座標を抽出する関数
+  const extractCoordinatesFromUrl = async (url: string) => {
+    if (!url) {
+      setError('GoogleマップURLを入力してください。');
+      return;
+    }
+
+    setExtractingCoords(true);
+    setError('');
+
+    try {
+      // Google Maps URLのパターンをチェック
+      let lat: number | null = null;
+      let lng: number | null = null;
+
+      // パターン1: https://maps.google.com/?q=lat,lng
+      const coordinatePattern = /@(-?\d+\.\d+),(-?\d+\.\d+)/;
+      const coordinateMatch = url.match(coordinatePattern);
+
+      if (coordinateMatch) {
+        lat = parseFloat(coordinateMatch[1]);
+        lng = parseFloat(coordinateMatch[2]);
+      } else {
+        // パターン2: https://www.google.com/maps/place/.../@lat,lng
+        const placePattern = /@(-?\d+\.\d+),(-?\d+\.\d+),/;
+        const placeMatch = url.match(placePattern);
+
+        if (placeMatch) {
+          lat = parseFloat(placeMatch[1]);
+          lng = parseFloat(placeMatch[2]);
+        } else {
+          // パターン3: ?q=lat,lng
+          const queryPattern = /[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/;
+          const queryMatch = url.match(queryPattern);
+
+          if (queryMatch) {
+            lat = parseFloat(queryMatch[1]);
+            lng = parseFloat(queryMatch[2]);
+          }
+        }
+      }
+
+      if (lat !== null && lng !== null) {
+        // 座標をフォームに設定
+        setValue('location.latitude', lat);
+        setValue('location.longitude', lng);
+        setError('');
+      } else {
+        setError('GoogleマップURLから座標を抽出できませんでした。正しいGoogleマップの共有リンクを使用してください。');
+      }
+    } catch (err) {
+      console.error('座標抽出エラー:', err);
+      setError('座標の抽出に失敗しました。');
+    } finally {
+      setExtractingCoords(false);
+    }
+  };
 
   // 既存店舗データの取得
   useEffect(() => {
@@ -359,11 +424,6 @@ export default function ShopForm() {
                         helperText={errors.address?.message || '富山県南砺市井波...'}
                         onChange={(e) => {
                           field.onChange(e);
-                          // 住所変更時に座標を更新（簡易実装）
-                          if (e.target.value) {
-                            const location = updateLocationFromAddress(e.target.value);
-                            // 実際の実装では control.setValue を使用
-                          }
                         }}
                       />
                     )}
@@ -380,8 +440,10 @@ export default function ShopForm() {
                         label="緯度"
                         type="number"
                         fullWidth
+                        InputProps={{ readOnly: true }}
                         inputProps={{ step: 0.000001 }}
-                        helperText="Googleマップなどから正確な座標を取得してください"
+                        helperText="Googleマップリンクから自動取得されます"
+                        sx={{ backgroundColor: 'grey.50' }}
                       />
                     )}
                   />
@@ -397,8 +459,10 @@ export default function ShopForm() {
                         label="経度"
                         type="number"
                         fullWidth
+                        InputProps={{ readOnly: true }}
                         inputProps={{ step: 0.000001 }}
-                        helperText="Googleマップなどから正確な座標を取得してください"
+                        helperText="Googleマップリンクから自動取得されます"
+                        sx={{ backgroundColor: 'grey.50' }}
                       />
                     )}
                   />
@@ -433,6 +497,19 @@ export default function ShopForm() {
                       />
                     )}
                   />
+                  {currentGoogleMapUrl && (
+                    <Box sx={{ mt: 1 }}>
+                      <Button
+                        variant="outlined"
+                        onClick={() => extractCoordinatesFromUrl(currentGoogleMapUrl)}
+                        disabled={extractingCoords}
+                        startIcon={extractingCoords ? <CircularProgress size={20} /> : <LocationOn />}
+                        size="small"
+                      >
+                        {extractingCoords ? '座標を抽出中...' : '座標を自動取得'}
+                      </Button>
+                    </Box>
+                  )}
                 </Grid>
 
                 <Grid item xs={12} md={6}>

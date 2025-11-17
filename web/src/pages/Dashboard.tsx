@@ -52,10 +52,10 @@ export default function Dashboard() {
         orderBy('createdAt', 'desc')
       );
       const shopsSnapshot = await getDocs(shopsQuery);
-      const shopsData = shopsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as FirestoreShop[];
+      const shopsData = shopsSnapshot.docs.map(doc => {
+        const data = doc.data() as any;
+        return { id: doc.id, ...data } as FirestoreShop;
+      });
       setShops(shopsData);
 
       // 自分のイベントを取得
@@ -65,10 +65,10 @@ export default function Dashboard() {
         orderBy('eventTimeStart', 'desc')
       );
       const eventsSnapshot = await getDocs(eventsQuery);
-      const eventsData = eventsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as FirestoreEvent[];
+      const eventsData = eventsSnapshot.docs.map(doc => {
+        const data = doc.data() as any;
+        return { id: doc.id, ...data } as FirestoreEvent;
+      });
       setEvents(eventsData);
 
     } catch (error: any) {
