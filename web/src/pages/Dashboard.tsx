@@ -66,16 +66,21 @@ export default function Dashboard() {
       console.log('ダッシュボード: 変換後の店舗データ:', shopsData);
       setShops(shopsData);
 
-      // 自分のイベントを取得 (orderByを削除)
+      // 自分のイベントを取得 (orderByなしでシンプルに)
+      console.log('ダッシュボード: イベント取得開始...');
       const eventsQuery = query(
         collection(db, 'events'),
         where('ownerUserId', '==', currentUser.uid)
       );
       const eventsSnapshot = await getDocs(eventsQuery);
+      console.log('ダッシュボード: イベントクエリ結果:', eventsSnapshot.size, '件');
+      
       const eventsData = eventsSnapshot.docs.map(doc => {
         const data = doc.data() as any;
+        console.log('ダッシュボード: イベントデータ:', doc.id, data);
         return { id: doc.id, ...data } as FirestoreEvent;
       });
+      console.log('ダッシュボード: 変換後のイベントデータ:', eventsData);
       setEvents(eventsData);
 
     } catch (error: any) {
