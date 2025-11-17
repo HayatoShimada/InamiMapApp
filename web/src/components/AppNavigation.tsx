@@ -42,6 +42,10 @@ export default function AppNavigation() {
   const [loadingMapData, setLoadingMapData] = useState(false);
   const [mapError, setMapError] = useState<string>('');
 
+  useEffect(() => {
+    console.log('ダイアログの状態:', { mapPreviewOpen, loadingMapData, mapError, shopsCount: shops.length, eventsCount: events.length });
+  }, [mapPreviewOpen, loadingMapData, mapError, shops.length, events.length]);
+
   const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
   };
@@ -61,7 +65,12 @@ export default function AppNavigation() {
   };
 
   const fetchMapData = async () => {
-    if (!currentUser) return;
+    if (!currentUser) {
+      console.log('ユーザーが認証されていません');
+      return;
+    }
+
+    console.log('マップデータの取得を開始します, ユーザー:', currentUser.uid, 'ロール:', userData?.role);
 
     try {
       setLoadingMapData(true);
@@ -71,24 +80,22 @@ export default function AppNavigation() {
       let shopsQuery, eventsQuery;
 
       if (userData?.role === 'admin') {
+        console.log('管理者として全データを取得');
         shopsQuery = query(
-          collection(db, 'shops'),
-          orderBy('createdAt', 'desc')
+          collection(db, 'shops')
         );
         eventsQuery = query(
-          collection(db, 'events'),
-          orderBy('createdAt', 'desc')
+          collection(db, 'events')
         );
       } else {
+        console.log('一般ユーザーとして自分のデータのみ取得, UID:', currentUser.uid);
         shopsQuery = query(
           collection(db, 'shops'),
-          where('ownerUserId', '==', currentUser.uid),
-          orderBy('createdAt', 'desc')
+          where('ownerUserId', '==', currentUser.uid)
         );
         eventsQuery = query(
           collection(db, 'events'),
-          where('ownerUserId', '==', currentUser.uid),
-          orderBy('createdAt', 'desc')
+          where('ownerUserId', '==', currentUser.uid)
         );
       }
 
@@ -107,17 +114,22 @@ export default function AppNavigation() {
         return { id: doc.id, ...data } as FirestoreEvent;
       });
 
+      console.log('取得した店舗データ:', shopsData.length, '件');
+      console.log('取得したイベントデータ:', eventsData.length, '件');
+      console.log('店舗詳細:', shopsData);
+
       setShops(shopsData);
       setEvents(eventsData);
     } catch (error: any) {
       console.error('マップデータ取得エラー:', error);
-      setMapError('データの取得に失敗しました。');
+      setMapError(`データの取得に失敗しました: ${error.message || error.toString()}`);
     } finally {
       setLoadingMapData(false);
     }
   };
 
   const handleMapPreview = () => {
+    console.log('マップボタンがクリックされました');
     setMapPreviewOpen(true);
     fetchMapData();
   };
@@ -130,12 +142,18 @@ export default function AppNavigation() {
   };
 
   const generateMapUrl = () => {
+    console.log('マップURL生成開始, 店舗数:', shops.length, '件');
     const markers: string[] = [];
 
     // 店舗マーカーを追加
     shops.forEach((shop, index) => {
+      console.log(`店舗${index + 1}: ${shop.shopName}`, shop.location);
       if (shop.location?.latitude && shop.location?.longitude) {
-        markers.push(`${shop.location.latitude},${shop.location.longitude}`);
+        const marker = `${shop.location.latitude},${shop.location.longitude}`;
+        markers.push(marker);
+        console.log('マーカー追加:', marker);
+      } else {
+        console.log('座標が無効:', shop.shopName, shop.location);
       }
     });
 
@@ -155,18 +173,28 @@ export default function AppNavigation() {
       }
     });
 
+    console.log('生成されたマーカー:', markers);
+
     if (markers.length === 0) {
       // デフォルト位置（井波）
-      return 'https://www.google.com/maps/@36.5569,136.9628,15z';
+      const defaultUrl = 'https://www.google.com/maps/place/井波町,+南砺市,+富山県/@36.5569,136.9628,15z';
+      console.log('マーカーが無いためデフォルト位置:', defaultUrl);
+      return defaultUrl;
     }
 
-    // 複数マーカーがある場合は最初のマーカーを中心とした地図
-    const centerMarker = markers[0];
-    let mapUrl = `https://www.google.com/maps/@${centerMarker},15z`;
-
-    // すべてのマーカーを表示するには、Google Maps Embed APIやDirections APIが必要
-    // 簡易実装として、最初のマーカー位置を中心とした地図を表示
-    return mapUrl;
+    // 複数のマーカーを表示する場合は、マップの中心とマーカーを設定
+    if (markers.length === 1) {
+      // 単一マーカーの場合
+      const mapUrl = `https://www.google.com/maps/place/@${markers[0]},15z`;
+      console.log('単一マーカー表示:', mapUrl);
+      return mapUrl;
+    } else {
+      // 複数マーカーの場合は、検索クエリーパラメーターを使用
+      const markerQueries = markers.map(marker => `"${marker}"`).join(' OR ');
+      const mapUrl = `https://www.google.com/maps/search/${encodeURIComponent(markerQueries)}/@36.5569,136.9628,13z`;
+      console.log('複数マーカー表示:', mapUrl);
+      return mapUrl;
+    }
   };
 
   const navigationItems = [
@@ -339,7 +367,11 @@ export default function AppNavigation() {
                   variant="contained"
                   color="primary"
                   startIcon={<Map />}
-                  onClick={() => window.open(generateMapUrl(), '_blank')}
+                  onClick={() => {
+                    const mapUrl = generateMapUrl();
+                    console.log('Googleマップボタンクリック, URL:', mapUrl);
+                    window.open(mapUrl, '_blank');
+                  }}
                   fullWidth
                   sx={{ mt: 2 }}
                 >

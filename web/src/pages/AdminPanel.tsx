@@ -81,22 +81,19 @@ export default function AdminPanel() {
         // 承認待ちイベント
         eventsQuery = query(
           collection(db, 'events'),
-          where('approvalStatus', '==', EVENT_APPROVAL_STATUS.PENDING),
-          orderBy('createdAt', 'desc')
+          where('approvalStatus', '==', EVENT_APPROVAL_STATUS.PENDING)
         );
       } else if (tabValue === 1) {
         // 承認済みイベント
         eventsQuery = query(
           collection(db, 'events'),
-          where('approvalStatus', '==', EVENT_APPROVAL_STATUS.APPROVED),
-          orderBy('createdAt', 'desc')
+          where('approvalStatus', '==', EVENT_APPROVAL_STATUS.APPROVED)
         );
       } else {
         // 却下されたイベント
         eventsQuery = query(
           collection(db, 'events'),
-          where('approvalStatus', '==', EVENT_APPROVAL_STATUS.REJECTED),
-          orderBy('createdAt', 'desc')
+          where('approvalStatus', '==', EVENT_APPROVAL_STATUS.REJECTED)
         );
       }
 

@@ -55,15 +55,13 @@ export default function ShopList() {
       if (userData?.role === 'admin') {
         // 管理者は全店舗を表示
         shopsQuery = query(
-          collection(db, 'shops'),
-          orderBy('createdAt', 'desc')
+          collection(db, 'shops')
         );
       } else {
         // 一般ユーザーは自分の店舗のみ表示
         shopsQuery = query(
           collection(db, 'shops'),
-          where('ownerUserId', '==', currentUser.uid),
-          orderBy('createdAt', 'desc')
+          where('ownerUserId', '==', currentUser.uid)
         );
       }
 

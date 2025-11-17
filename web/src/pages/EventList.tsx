@@ -91,22 +91,19 @@ export default function EventList() {
           // 管理者: 承認待ちイベント
           eventsQuery = query(
             collection(db, 'events'),
-            where('approvalStatus', '==', EVENT_APPROVAL_STATUS.PENDING),
-            orderBy('createdAt', 'desc')
+            where('approvalStatus', '==', EVENT_APPROVAL_STATUS.PENDING)
           );
         } else if (tabValue === 1) {
           // 管理者: 全イベント
           eventsQuery = query(
-            collection(db, 'events'),
-            orderBy('eventTimeStart', 'desc')
+            collection(db, 'events')
           );
         }
       } else {
         // 一般ユーザー: 自分のイベントのみ
         eventsQuery = query(
           collection(db, 'events'),
-          where('ownerUserId', '==', currentUser.uid),
-          orderBy('eventTimeStart', 'desc')
+          where('ownerUserId', '==', currentUser.uid)
         );
       }
 

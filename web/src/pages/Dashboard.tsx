@@ -38,30 +38,38 @@ export default function Dashboard() {
   }, [currentUser]);
 
   const fetchData = async () => {
-    if (!currentUser) return;
+    if (!currentUser) {
+      console.log('ダッシュボード: ユーザーが認証されていません');
+      return;
+    }
+
+    console.log('ダッシュボード: データ取得開始, ユーザーUID:', currentUser.uid);
 
     try {
       setLoading(true);
       setError('');
 
-      // 自分の店舗を取得
+      // 自分の店舗を取得 (orderByを削除してテスト)
       const shopsQuery = query(
         collection(db, 'shops'),
-        where('ownerUserId', '==', currentUser.uid),
-        orderBy('createdAt', 'desc')
+        where('ownerUserId', '==', currentUser.uid)
       );
+      console.log('ダッシュボード: 店舗クエリ実行中...');
       const shopsSnapshot = await getDocs(shopsQuery);
+      console.log('ダッシュボード: 店舗クエリ結果:', shopsSnapshot.size, '件');
+      
       const shopsData = shopsSnapshot.docs.map(doc => {
         const data = doc.data() as any;
+        console.log('ダッシュボード: 店舗データ:', doc.id, data);
         return { id: doc.id, ...data } as FirestoreShop;
       });
+      console.log('ダッシュボード: 変換後の店舗データ:', shopsData);
       setShops(shopsData);
 
-      // 自分のイベントを取得
+      // 自分のイベントを取得 (orderByを削除)
       const eventsQuery = query(
         collection(db, 'events'),
-        where('ownerUserId', '==', currentUser.uid),
-        orderBy('eventTimeStart', 'desc')
+        where('ownerUserId', '==', currentUser.uid)
       );
       const eventsSnapshot = await getDocs(eventsQuery);
       const eventsData = eventsSnapshot.docs.map(doc => {
@@ -71,8 +79,9 @@ export default function Dashboard() {
       setEvents(eventsData);
 
     } catch (error: any) {
-      console.error('データ取得エラー:', error);
-      setError('データの取得に失敗しました。');
+      console.error('ダッシュボード: データ取得エラー:', error);
+      console.error('ダッシュボード: エラー詳細:', error.code, error.message);
+      setError(`データの取得に失敗しました: ${error.message || error.toString()}`);
     } finally {
       setLoading(false);
     }
