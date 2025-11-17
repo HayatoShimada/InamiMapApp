@@ -33,7 +33,6 @@ import {
   APPROVAL_STATUS_LABELS 
 } from '../types/firebase';
 import { EVENT_PROGRESS_STATUS, EVENT_APPROVAL_STATUS } from '../../../shared/constants';
-import AppNavigation from '../components/AppNavigation';
 import ImageUpload from '../components/ImageUpload';
 
 export default function EventForm() {
@@ -226,10 +225,7 @@ export default function EventForm() {
   }
 
   return (
-    <Box sx={{ flexGrow: 1 }}>
-      <AppNavigation />
-      
-      <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
+    <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
         <Card>
           <CardContent>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
@@ -529,7 +525,6 @@ export default function EventForm() {
             </form>
           </CardContent>
         </Card>
-      </Container>
-    </Box>
+    </Container>
   );
 }

@@ -44,7 +44,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { FirestoreEvent } from '../types/firebase';
 import { EVENT_PROGRESS_LABELS, APPROVAL_STATUS_LABELS } from '../types/firebase';
 import { EVENT_PROGRESS_STATUS, EVENT_APPROVAL_STATUS } from '../../../shared/constants';
-import AppNavigation from '../components/AppNavigation';
 import EventPreview from '../components/EventPreview';
 
 interface TabPanelProps {
@@ -209,20 +208,14 @@ export default function EventList() {
 
   if (loading) {
     return (
-      <Box sx={{ flexGrow: 1 }}>
-        <AppNavigation />
-        <Container maxWidth="lg" sx={{ mt: 4, textAlign: 'center' }}>
-          <Typography>読み込み中...</Typography>
-        </Container>
-      </Box>
+      <Container maxWidth="lg" sx={{ mt: 4, textAlign: 'center' }}>
+        <Typography>読み込み中...</Typography>
+      </Container>
     );
   }
 
   return (
-    <Box sx={{ flexGrow: 1 }}>
-      <AppNavigation />
-      
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
           <Event sx={{ mr: 1, fontSize: 32, color: 'primary.main' }} />
           <Typography variant="h4" component="h1">
@@ -366,8 +359,7 @@ export default function EventList() {
             </Button>
           </DialogActions>
         </Dialog>
-      </Container>
-    </Box>
+    </Container>
   );
 }
 

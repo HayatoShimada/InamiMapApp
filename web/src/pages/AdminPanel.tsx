@@ -30,7 +30,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { FirestoreEvent } from '../types/firebase';
 import { EVENT_PROGRESS_LABELS, APPROVAL_STATUS_LABELS } from '../types/firebase';
 import { EVENT_APPROVAL_STATUS } from '../../../shared/constants';
-import AppNavigation from '../components/AppNavigation';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -59,14 +58,11 @@ export default function AdminPanel() {
   // 管理者権限チェック
   if (userData?.role !== 'admin') {
     return (
-      <Box sx={{ flexGrow: 1 }}>
-        <AppNavigation />
-        <Container maxWidth="lg" sx={{ mt: 4 }}>
-          <Alert severity="error">
-            管理者権限が必要です。
-          </Alert>
-        </Container>
-      </Box>
+      <Container maxWidth="lg" sx={{ mt: 4 }}>
+        <Alert severity="error">
+          管理者権限が必要です。
+        </Alert>
+      </Container>
     );
   }
 
@@ -178,10 +174,7 @@ export default function AdminPanel() {
   };
 
   return (
-    <Box sx={{ flexGrow: 1 }}>
-      <AppNavigation />
-      
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
           <AdminPanelSettings sx={{ mr: 1, fontSize: 32, color: 'secondary.main' }} />
           <Typography variant="h4" component="h1">
@@ -395,7 +388,6 @@ export default function AdminPanel() {
             </Button>
           </DialogActions>
         </Dialog>
-      </Container>
-    </Box>
+    </Container>
   );
 }

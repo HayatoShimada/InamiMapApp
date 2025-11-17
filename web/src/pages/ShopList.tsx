@@ -29,7 +29,6 @@ import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../contexts/AuthContext';
 import { FirestoreShop } from '../types/firebase';
-import AppNavigation from '../components/AppNavigation';
 import ShopPreview from '../components/ShopPreview';
 
 export default function ShopList() {
@@ -105,20 +104,14 @@ export default function ShopList() {
 
   if (loading) {
     return (
-      <Box sx={{ flexGrow: 1 }}>
-        <AppNavigation />
-        <Container maxWidth="lg" sx={{ mt: 4, textAlign: 'center' }}>
-          <Typography>読み込み中...</Typography>
-        </Container>
-      </Box>
+      <Container maxWidth="lg" sx={{ mt: 4, textAlign: 'center' }}>
+        <Typography>読み込み中...</Typography>
+      </Container>
     );
   }
 
   return (
-    <Box sx={{ flexGrow: 1 }}>
-      <AppNavigation />
-      
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
           <Store sx={{ mr: 1, fontSize: 32, color: 'primary.main' }} />
           <Typography variant="h4" component="h1">
@@ -268,7 +261,6 @@ export default function ShopList() {
             </Button>
           </DialogActions>
         </Dialog>
-      </Container>
-    </Box>
+    </Container>
   );
 }

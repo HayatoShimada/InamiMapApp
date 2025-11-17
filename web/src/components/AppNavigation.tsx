@@ -183,7 +183,7 @@ export default function AppNavigation() {
   }
 
   return (
-    <AppBar position="sticky" color="primary" sx={{ top: 0, zIndex: 1100 }}>
+    <AppBar position="static" color="primary">
       <Toolbar>
         <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
           井波マップ管理画面

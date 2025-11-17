@@ -37,7 +37,6 @@ import { Timestamp } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
 import { useFirestore } from '../hooks/useFirestore';
 import { FirestoreShop, ShopFormData } from '../types/firebase';
-import AppNavigation from '../components/AppNavigation';
 import ImageUpload from '../components/ImageUpload';
 
 // デモ用のカテゴリ（実際の実装では管理者が管理するカテゴリから取得）
@@ -286,10 +285,7 @@ export default function ShopForm() {
   }
 
   return (
-    <Box sx={{ flexGrow: 1 }}>
-      <AppNavigation />
-      
-      <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
+    <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
         <Card>
           <CardContent>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
@@ -787,7 +783,6 @@ export default function ShopForm() {
             </form>
           </CardContent>
         </Card>
-      </Container>
-    </Box>
+    </Container>
   );
 }

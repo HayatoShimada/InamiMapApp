@@ -24,7 +24,6 @@ import { db } from '../firebase/config';
 import { useAuth } from '../contexts/AuthContext';
 import { FirestoreEvent, FirestoreShop } from '../types/firebase';
 import { EVENT_PROGRESS_LABELS, APPROVAL_STATUS_LABELS } from '../types/firebase';
-import AppNavigation from '../components/AppNavigation';
 
 export default function Dashboard() {
   const { currentUser, userData } = useAuth();
@@ -111,10 +110,7 @@ export default function Dashboard() {
   };
 
   return (
-    <Box sx={{ flexGrow: 1 }}>
-      <AppNavigation />
-      
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
         {/* ウェルカムメッセージ */}
         <Box sx={{ mb: 4 }}>
           <Typography variant="h4" gutterBottom>
@@ -269,7 +265,6 @@ export default function Dashboard() {
             </Card>
           </Grid>
         </Grid>
-      </Container>
-    </Box>
+    </Container>
   );
 }
