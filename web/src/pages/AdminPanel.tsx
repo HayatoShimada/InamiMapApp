@@ -105,10 +105,10 @@ export default function AdminPanel() {
       }
 
       const querySnapshot = await getDocs(eventsQuery);
-      const eventsData = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as unknown as FirestoreEvent[];
+      const eventsData = querySnapshot.docs.map(doc => {
+        const data = doc.data() as any;
+        return { id: doc.id, ...data } as FirestoreEvent;
+      });
 
       setEvents(eventsData);
     } catch (error: any) {

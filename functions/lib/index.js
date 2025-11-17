@@ -5,8 +5,10 @@ const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const imageProcessing_1 = require("./imageProcessing");
 const notifications_1 = require("./notifications");
-// Firebase Admin SDK初期化
-admin.initializeApp();
+// Firebase Admin SDK初期化（一度だけ）
+if (!admin.apps.length) {
+    admin.initializeApp();
+}
 // 画像処理関連のCloud Functions
 exports.processShopImage = imageProcessing_1.imageProcessing.processShopImage;
 exports.processEventImage = imageProcessing_1.imageProcessing.processEventImage;

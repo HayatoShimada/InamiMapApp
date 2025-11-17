@@ -170,7 +170,7 @@ export default function EventForm() {
         return;
       }
 
-      const eventPayload = {
+      const basePayload = {
         ownerUserId: currentUser.uid,
         shopId: data.shopId || undefined,
         eventName: data.eventName,
@@ -180,15 +180,11 @@ export default function EventForm() {
         location: data.location,
         participatingShops: data.participatingShops || [],
         images: imageUrls,
-        ...(isEditMode ? {
-          // 編集時は進行状況を更新可能
-          eventProgress: data.eventProgress || EVENT_PROGRESS_STATUS.SCHEDULED
-        } : {
-          // 新規作成時は承認待ち・予定状態
-          approvalStatus: EVENT_APPROVAL_STATUS.PENDING,
-          eventProgress: EVENT_PROGRESS_STATUS.SCHEDULED
-        })
+        eventProgress: (isEditMode ? data.eventProgress : EVENT_PROGRESS_STATUS.SCHEDULED) as 'scheduled' | 'cancelled' | 'ongoing' | 'finished',
+        approvalStatus: EVENT_APPROVAL_STATUS.PENDING as 'pending' | 'approved' | 'rejected'
       };
+
+      const eventPayload = basePayload;
 
       if (isEditMode && id) {
         await updateDocument(id, eventPayload);

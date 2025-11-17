@@ -69,10 +69,10 @@ export default function ShopList() {
       }
 
       const querySnapshot = await getDocs(shopsQuery);
-      const shopsData = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as unknown as FirestoreShop[];
+      const shopsData = querySnapshot.docs.map(doc => {
+        const data = doc.data() as any;
+        return { id: doc.id, ...data } as FirestoreShop;
+      });
 
       setShops(shopsData);
     } catch (error: any) {

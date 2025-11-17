@@ -34,6 +34,30 @@ export interface Shop {
   address: string;
   shopCategory: string;
   images: string[]; // 最大5枚
+  // オンライン情報
+  googleMapUrl?: string; // Googleマップリンク
+  website?: string; // 公式ウェブサイト
+  onlineStore?: string; // オンラインストア
+  socialMedia?: {
+    instagram?: string;
+    twitter?: string;
+    facebook?: string;
+    line?: string;
+    youtube?: string;
+  };
+  // 営業情報
+  businessHours?: {
+    monday?: string;
+    tuesday?: string;
+    wednesday?: string;
+    thursday?: string;
+    friday?: string;
+    saturday?: string;
+    sunday?: string;
+  };
+  phone?: string;
+  email?: string;
+  closedDays?: string; // 定休日の説明
   createdAt: Date;
   updatedAt: Date;
 }

@@ -3,8 +3,10 @@ import * as admin from "firebase-admin";
 import { imageProcessing } from "./imageProcessing";
 import { notificationHandlers } from "./notifications";
 
-// Firebase Admin SDK初期化
-admin.initializeApp();
+// Firebase Admin SDK初期化（一度だけ）
+if (!admin.apps.length) {
+  admin.initializeApp();
+}
 
 // 画像処理関連のCloud Functions
 export const processShopImage = imageProcessing.processShopImage;

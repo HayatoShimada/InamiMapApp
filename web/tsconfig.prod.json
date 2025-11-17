@@ -3,6 +3,8 @@
   "compilerOptions": {
     "noUnusedLocals": false,
     "noUnusedParameters": false,
-    "strict": false
+    "strict": false,
+    "skipLibCheck": true,
+    "noImplicitAny": false
   }
 }
