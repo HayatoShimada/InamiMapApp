@@ -1,0 +1,44 @@
+// Firestore Security Rules for InamiMapApp V4.1
+// These rules ensure that only approved content is visible to mobile app users
+// and that authenticated users can manage their own data
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Shop documents - mobile users can only read approved shops
+    match /shops/{shopId} {
+      allow read: if resource.data.approvalStatus == 'approved';
+      // Web admin can write (handled by web app security)
+      allow write: if false; // Mobile app is read-only for shops
+    }
+    
+    // Event documents - mobile users can only read approved events  
+    match /events/{eventId} {
+      allow read: if resource.data.approvalStatus == 'approved';
+      // Web admin can write (handled by web app security)
+      allow write: if false; // Mobile app is read-only for events
+    }
+    
+    // User favorites - authenticated users can manage their own favorites
+    match /users/{userId}/favorites/{favoriteId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // User profiles - users can read and update their own profile
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Admin-only collections (not accessible from mobile)
+    match /admin/{document=**} {
+      allow read, write: if false; // Mobile app cannot access admin data
+    }
+    
+    // Global app configuration (read-only for all authenticated users)
+    match /config/{configId} {
+      allow read: if request.auth != null;
+      allow write: if false; // Config is managed via web admin
+    }
+  }
+}

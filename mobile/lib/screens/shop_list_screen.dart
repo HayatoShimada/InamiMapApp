@@ -453,6 +453,11 @@ class ShopDetailSheet extends StatelessWidget {
                       const SizedBox(height: 16),
                     ],
                     
+                    // 臨時営業ステータス
+                    TemporaryStatusWidget(
+                      temporaryStatus: shop.temporaryStatus,
+                    ),
+                    
                     // 説明
                     const Text(
                       '店舗説明',
@@ -470,7 +475,101 @@ class ShopDetailSheet extends StatelessWidget {
                       ),
                     ),
                     
+                    // こだわりポイント
+                    if (shop.maniacPoint.isNotEmpty) ..[
+                      const SizedBox(height: 16),
+                      const Text(
+                        'こだわりポイント',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.orange.shade200),
+                        ),
+                        child: Text(
+                          shop.maniacPoint,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            height: 1.5,
+                          ),
+                        ),
+                      ),
+                    ],
+                    
+                    // 提供サービス
                     const SizedBox(height: 16),
+                    ShopServicesWidget(
+                      services: shop.services,
+                    ),
+                    
+                    const SizedBox(height: 16),
+                    
+                    // 連絡先情報
+                    if (shop.phone != null || shop.email != null || shop.closedDays != null) ..[
+                      const Text(
+                        '連絡先・営業情報',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      
+                      if (shop.phone != null) ..[
+                        Row(
+                          children: [
+                            const Icon(Icons.phone, color: Colors.green, size: 20),
+                            const SizedBox(width: 8),
+                            Text(
+                              shop.phone!,
+                              style: const TextStyle(fontSize: 16),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                      ],
+                      
+                      if (shop.email != null) ..[
+                        Row(
+                          children: [
+                            const Icon(Icons.email, color: Colors.blue, size: 20),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                shop.email!,
+                                style: const TextStyle(fontSize: 16),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                      ],
+                      
+                      if (shop.closedDays != null) ..[
+                        Row(
+                          children: [
+                            const Icon(Icons.schedule, color: Colors.orange, size: 20),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                shop.closedDays!,
+                                style: const TextStyle(fontSize: 16),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                      ],
+                      
+                      const SizedBox(height: 16),
+                    ],
                     
                     // 住所
                     const Text(

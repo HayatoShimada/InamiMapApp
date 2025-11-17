@@ -1,0 +1,44 @@
+// Cloud Storage Security Rules for InamiMapApp V4.1
+// These rules allow public read access to approved shop/event images
+// and protect upload functionality for admin use only
+
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Shop images - public read access for approved shops
+    match /shop-images/{shopId}/{imageFile} {
+      allow read: if true; // Public read access for approved content
+      allow write: if false; // Mobile app doesn't upload images
+    }
+    
+    // Event images - public read access for approved events
+    match /event-images/{eventId}/{imageFile} {
+      allow read: if true; // Public read access for approved content
+      allow write: if false; // Mobile app doesn't upload images
+    }
+    
+    // User profile images - users can upload their own profile images
+    match /user-images/{userId}/{imageFile} {
+      allow read: if true; // Public read for user avatars
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // App assets and static content - public read access
+    match /assets/{allPaths=**} {
+      allow read: if true; // Public access to app assets
+      allow write: if false; // Only admin can manage assets
+    }
+    
+    // Admin uploads - restricted access
+    match /admin/{allPaths=**} {
+      allow read, write: if false; // Mobile app cannot access admin files
+    }
+    
+    // Temporary uploads - for user-generated content review
+    match /temp-uploads/{userId}/{imageFile} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      // These files should be processed and moved by Cloud Functions
+    }
+  }
+}

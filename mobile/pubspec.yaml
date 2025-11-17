@@ -1,9 +1,9 @@
 name: inami_map_app
-description: Flutter mobile app for InamiMapApp
+description: Flutter mobile app for InamiMapApp - 井波マップアプリ V4.1
 
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 4.1.0+2
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
