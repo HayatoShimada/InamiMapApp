@@ -29,7 +29,7 @@ export function useImageUpload({ path, maxImages = IMAGE_CONSTRAINTS.MAX_IMAGES_
       return `ファイルサイズが大きすぎます。${Math.round(IMAGE_CONSTRAINTS.MAX_FILE_SIZE / (1024 * 1024))}MB以下にしてください。`;
     }
 
-    if (!IMAGE_CONSTRAINTS.ALLOWED_TYPES.includes(file.type)) {
+    if (!IMAGE_CONSTRAINTS.ALLOWED_TYPES.includes(file.type as 'image/jpeg' | 'image/png' | 'image/webp')) {
       return 'サポートされていないファイル形式です。JPEG、PNG、WebPのみ対応しています。';
     }
 

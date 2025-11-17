@@ -16,8 +16,22 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Divider,
+  InputAdornment,
 } from '@mui/material';
-import { Save, Cancel, Store } from '@mui/icons-material';
+import { 
+  Save, 
+  Cancel, 
+  Store, 
+  Language, 
+  Instagram, 
+  Twitter, 
+  Facebook, 
+  YouTube,
+  Phone,
+  Email,
+  Schedule
+} from '@mui/icons-material';
 import { Timestamp } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
 import { useFirestore } from '../hooks/useFirestore';
@@ -33,6 +47,8 @@ const SHOP_CATEGORIES = [
   'カフェ',
   '雑貨店',
   'ギャラリー',
+  'お土産',
+  '衣料品',
   'その他'
 ];
 
@@ -64,6 +80,19 @@ export default function ShopForm() {
         longitude: 136.9628,
       },
       images: [],
+      googleMapUrl: '',
+      website: '',
+      onlineStore: '',
+      socialMedia: {
+        instagram: '',
+        twitter: '',
+        facebook: '',
+        line: '',
+        youtube: '',
+      },
+      phone: '',
+      email: '',
+      closedDays: '',
     },
   });
 
@@ -104,6 +133,19 @@ export default function ShopForm() {
         shopCategory: shop.shopCategory,
         location: shop.location,
         images: [],
+        googleMapUrl: shop.googleMapUrl || '',
+        website: shop.website || '',
+        onlineStore: shop.onlineStore || '',
+        socialMedia: {
+          instagram: shop.socialMedia?.instagram || '',
+          twitter: shop.socialMedia?.twitter || '',
+          facebook: shop.socialMedia?.facebook || '',
+          line: shop.socialMedia?.line || '',
+          youtube: shop.socialMedia?.youtube || '',
+        },
+        phone: shop.phone || '',
+        email: shop.email || '',
+        closedDays: shop.closedDays || '',
       });
     } catch (error: any) {
       console.error('店舗データ取得エラー:', error);
@@ -129,6 +171,13 @@ export default function ShopForm() {
         shopCategory: data.shopCategory,
         location: data.location,
         images: imageUrls,
+        googleMapUrl: data.googleMapUrl,
+        website: data.website,
+        onlineStore: data.onlineStore,
+        socialMedia: data.socialMedia,
+        phone: data.phone,
+        email: data.email,
+        closedDays: data.closedDays,
       };
 
       if (isEditMode && id) {
@@ -355,9 +404,276 @@ export default function ShopForm() {
                   />
                 </Grid>
 
-                {/* 画像アップロード */}
+                {/* オンライン情報 */}
+                <Grid item xs={12}>
+                  <Divider sx={{ my: 2 }} />
+                  <Typography variant="h6" gutterBottom>
+                    オンライン情報
+                  </Typography>
+                </Grid>
+
+                <Grid item xs={12}>
+                  <Controller
+                    name="googleMapUrl"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        label="Googleマップリンク"
+                        fullWidth
+                        placeholder="https://maps.google.com/..."
+                        helperText="Googleマップで店舗を検索し、「共有」からリンクをコピーして貼り付けてください"
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <Language color="action" />
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    )}
+                  />
+                </Grid>
+
+                <Grid item xs={12} md={6}>
+                  <Controller
+                    name="website"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        label="公式ウェブサイト"
+                        fullWidth
+                        placeholder="https://..."
+                        helperText="店舗の公式ホームページURL"
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <Language color="action" />
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    )}
+                  />
+                </Grid>
+
+                <Grid item xs={12} md={6}>
+                  <Controller
+                    name="onlineStore"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        label="オンラインストア"
+                        fullWidth
+                        placeholder="https://..."
+                        helperText="ECサイトや通販サイトのURL"
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <Language color="action" />
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    )}
+                  />
+                </Grid>
+
+                {/* SNSアカウント */}
                 <Grid item xs={12}>
                   <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+                    SNSアカウント
+                  </Typography>
+                </Grid>
+
+                <Grid item xs={12} md={6}>
+                  <Controller
+                    name="socialMedia.instagram"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        label="Instagram"
+                        fullWidth
+                        placeholder="@アカウント名 または URL"
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <Instagram color="action" />
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    )}
+                  />
+                </Grid>
+
+                <Grid item xs={12} md={6}>
+                  <Controller
+                    name="socialMedia.twitter"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        label="Twitter / X"
+                        fullWidth
+                        placeholder="@アカウント名 または URL"
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <Twitter color="action" />
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    )}
+                  />
+                </Grid>
+
+                <Grid item xs={12} md={6}>
+                  <Controller
+                    name="socialMedia.facebook"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        label="Facebook"
+                        fullWidth
+                        placeholder="ページURL"
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <Facebook color="action" />
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    )}
+                  />
+                </Grid>
+
+                <Grid item xs={12} md={6}>
+                  <Controller
+                    name="socialMedia.youtube"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        label="YouTube"
+                        fullWidth
+                        placeholder="チャンネルURL"
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <YouTube color="action" />
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    )}
+                  />
+                </Grid>
+
+                <Grid item xs={12}>
+                  <Controller
+                    name="socialMedia.line"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        label="LINE公式アカウント"
+                        fullWidth
+                        placeholder="LINE ID または URL"
+                        helperText="LINE公式アカウントのIDまたはURL"
+                      />
+                    )}
+                  />
+                </Grid>
+
+                {/* 連絡先情報 */}
+                <Grid item xs={12}>
+                  <Divider sx={{ my: 2 }} />
+                  <Typography variant="h6" gutterBottom>
+                    連絡先情報
+                  </Typography>
+                </Grid>
+
+                <Grid item xs={12} md={6}>
+                  <Controller
+                    name="phone"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        label="電話番号"
+                        fullWidth
+                        placeholder="0763-XX-XXXX"
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <Phone color="action" />
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    )}
+                  />
+                </Grid>
+
+                <Grid item xs={12} md={6}>
+                  <Controller
+                    name="email"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        label="メールアドレス"
+                        fullWidth
+                        type="email"
+                        placeholder="info@example.com"
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <Email color="action" />
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    )}
+                  />
+                </Grid>
+
+                <Grid item xs={12}>
+                  <Controller
+                    name="closedDays"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        label="定休日・営業時間"
+                        fullWidth
+                        multiline
+                        rows={2}
+                        placeholder="例：毎週水曜日、年末年始休業 / 営業時間：9:00-18:00"
+                        helperText="定休日や営業時間の情報をご記入ください"
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <Schedule color="action" />
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    )}
+                  />
+                </Grid>
+
+                {/* 画像アップロード */}
+                <Grid item xs={12}>
+                  <Divider sx={{ my: 2 }} />
+                  <Typography variant="h6" gutterBottom>
                     店舗画像
                   </Typography>
                   <ImageUpload

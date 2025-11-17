@@ -19,6 +19,10 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import {
   Event,
@@ -32,6 +36,7 @@ import {
   HourglassEmpty,
   PlayArrow,
   Stop,
+  Visibility,
 } from '@mui/icons-material';
 import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '../firebase/config';
@@ -40,6 +45,7 @@ import { FirestoreEvent } from '../types/firebase';
 import { EVENT_PROGRESS_LABELS, APPROVAL_STATUS_LABELS } from '../types/firebase';
 import { EVENT_PROGRESS_STATUS, EVENT_APPROVAL_STATUS } from '../../../shared/constants';
 import AppNavigation from '../components/AppNavigation';
+import EventPreview from '../components/EventPreview';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -63,6 +69,8 @@ export default function EventList() {
   const [error, setError] = useState<string>('');
   const [tabValue, setTabValue] = useState(0);
   const [progressFilter, setProgressFilter] = useState<string>('all');
+  const [previewEvent, setPreviewEvent] = useState<FirestoreEvent | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   const isAdmin = userData?.role === 'admin';
 
@@ -122,6 +130,16 @@ export default function EventList() {
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
+  };
+
+  const handlePreviewEvent = (event: FirestoreEvent) => {
+    setPreviewEvent(event);
+    setPreviewOpen(true);
+  };
+
+  const handleClosePreview = () => {
+    setPreviewOpen(false);
+    setPreviewEvent(null);
   };
 
   const formatDate = (timestamp: any) => {
@@ -274,7 +292,7 @@ export default function EventList() {
             <Grid container spacing={3}>
               {filteredEvents.map((event) => (
                 <Grid item xs={12} sm={6} md={4} key={event.id}>
-                  <EventCard event={event} isAdmin={isAdmin} navigate={navigate} />
+                  <EventCard event={event} isAdmin={isAdmin} navigate={navigate} onPreview={handlePreviewEvent} />
                 </Grid>
               ))}
             </Grid>
@@ -310,7 +328,7 @@ export default function EventList() {
             <Grid container spacing={3}>
               {filteredEvents.map((event) => (
                 <Grid item xs={12} sm={6} md={4} key={event.id}>
-                  <EventCard event={event} isAdmin={isAdmin} navigate={navigate} />
+                  <EventCard event={event} isAdmin={isAdmin} navigate={navigate} onPreview={handlePreviewEvent} />
                 </Grid>
               ))}
             </Grid>
@@ -326,6 +344,28 @@ export default function EventList() {
         >
           <Add />
         </Fab>
+
+        {/* プレビューダイアログ */}
+        <Dialog
+          open={previewOpen}
+          onClose={handleClosePreview}
+          maxWidth="md"
+          fullWidth
+        >
+          <DialogTitle>
+            イベントプレビュー
+          </DialogTitle>
+          <DialogContent>
+            {previewEvent && (
+              <EventPreview event={previewEvent} compact={false} />
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleClosePreview}>
+              閉じる
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Container>
     </Box>
   );
@@ -336,9 +376,10 @@ interface EventCardProps {
   event: FirestoreEvent;
   isAdmin: boolean;
   navigate: (path: string) => void;
+  onPreview: (event: FirestoreEvent) => void;
 }
 
-function EventCard({ event, isAdmin, navigate }: EventCardProps) {
+function EventCard({ event, isAdmin, navigate, onPreview }: EventCardProps) {
   const { currentUser } = useAuth();
   
   const getProgressIcon = (progress: string) => {
@@ -461,9 +502,18 @@ function EventCard({ event, isAdmin, navigate }: EventCardProps) {
       </CardContent>
       
       <CardActions sx={{ justifyContent: 'space-between', px: 2, pb: 2 }}>
-        <Typography variant="caption" color="text.secondary">
-          {formatDate(event.createdAt)}
-        </Typography>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button 
+            size="small" 
+            startIcon={<Visibility />}
+            onClick={() => onPreview(event)}
+          >
+            プレビュー
+          </Button>
+          <Typography variant="caption" color="text.secondary" sx={{ alignSelf: 'center' }}>
+            {formatDate(event.createdAt)}
+          </Typography>
+        </Box>
         {canEdit && (
           <Button 
             size="small" 

@@ -30,7 +30,7 @@ export function useFirestore<T extends DocumentData>(collectionName: string) {
       const docSnap = await getDoc(docRef);
       
       if (docSnap.exists()) {
-        return { id: docSnap.id, ...docSnap.data() } as T;
+        return { id: docSnap.id, ...docSnap.data() } as unknown as T;
       }
       return null;
     } catch (error: any) {
@@ -54,7 +54,7 @@ export function useFirestore<T extends DocumentData>(collectionName: string) {
       const docs = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
-      })) as T[];
+      })) as unknown as T[];
       
       setDocuments(docs);
       return docs;

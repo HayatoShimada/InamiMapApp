@@ -108,7 +108,7 @@ export default function AdminPanel() {
       const eventsData = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
-      })) as FirestoreEvent[];
+      })) as unknown as FirestoreEvent[];
 
       setEvents(eventsData);
     } catch (error: any) {
@@ -295,7 +295,7 @@ export default function AdminPanel() {
                               startIcon={<Visibility />}
                               onClick={() => {
                                 setSelectedEvent(event);
-                                // 詳細表示ダイアログを開く（実装予定）
+                                // プレビュー機能をここに実装可能
                               }}
                               fullWidth
                             >

@@ -13,6 +13,10 @@ import {
   Chip,
   Alert,
   Fab,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import {
   Store,
@@ -26,6 +30,7 @@ import { db } from '../firebase/config';
 import { useAuth } from '../contexts/AuthContext';
 import { FirestoreShop } from '../types/firebase';
 import AppNavigation from '../components/AppNavigation';
+import ShopPreview from '../components/ShopPreview';
 
 export default function ShopList() {
   const navigate = useNavigate();
@@ -33,6 +38,8 @@ export default function ShopList() {
   const [shops, setShops] = useState<FirestoreShop[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
+  const [previewShop, setPreviewShop] = useState<FirestoreShop | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   useEffect(() => {
     fetchShops();
@@ -65,7 +72,7 @@ export default function ShopList() {
       const shopsData = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
-      })) as FirestoreShop[];
+      })) as unknown as FirestoreShop[];
 
       setShops(shopsData);
     } catch (error: any) {
@@ -80,6 +87,16 @@ export default function ShopList() {
     if (!timestamp) return '';
     const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
     return date.toLocaleDateString('ja-JP');
+  };
+
+  const handlePreviewShop = (shop: FirestoreShop) => {
+    setPreviewShop(shop);
+    setPreviewOpen(true);
+  };
+
+  const handleClosePreview = () => {
+    setPreviewOpen(false);
+    setPreviewShop(null);
   };
 
   const getDefaultImage = () => {
@@ -188,13 +205,22 @@ export default function ShopList() {
                   </CardContent>
                   
                   <CardActions sx={{ justifyContent: 'space-between', px: 2, pb: 2 }}>
-                    <Button 
-                      size="small" 
-                      startIcon={<Visibility />}
-                      onClick={() => window.open(`https://maps.google.com/?q=${shop.location.latitude},${shop.location.longitude}`, '_blank')}
-                    >
-                      地図で見る
-                    </Button>
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <Button 
+                        size="small" 
+                        startIcon={<Visibility />}
+                        onClick={() => handlePreviewShop(shop)}
+                      >
+                        プレビュー
+                      </Button>
+                      <Button 
+                        size="small" 
+                        startIcon={<LocationOn />}
+                        onClick={() => window.open(shop.googleMapUrl || `https://maps.google.com/?q=${shop.address}`, '_blank')}
+                      >
+                        地図
+                      </Button>
+                    </Box>
                     {(currentUser?.uid === shop.ownerUserId || userData?.role === 'admin') && (
                       <Button 
                         size="small" 
@@ -220,6 +246,28 @@ export default function ShopList() {
         >
           <Add />
         </Fab>
+
+        {/* プレビューダイアログ */}
+        <Dialog
+          open={previewOpen}
+          onClose={handleClosePreview}
+          maxWidth="md"
+          fullWidth
+        >
+          <DialogTitle>
+            店舗プレビュー
+          </DialogTitle>
+          <DialogContent>
+            {previewShop && (
+              <ShopPreview shop={previewShop} compact={false} />
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleClosePreview}>
+              閉じる
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Container>
     </Box>
   );

@@ -23,6 +23,21 @@ export interface FirestoreShop {
   address: string;
   shopCategory: string;
   images: string[]; // 最大5枚
+  // オンライン情報
+  googleMapUrl?: string;
+  website?: string;
+  onlineStore?: string;
+  socialMedia?: {
+    instagram?: string;
+    twitter?: string;
+    facebook?: string;
+    line?: string;
+    youtube?: string;
+  };
+  // 連絡先・営業情報
+  phone?: string;
+  email?: string;
+  closedDays?: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -89,6 +104,21 @@ export interface ShopFormData {
     longitude: number;
   };
   images: File[];
+  // オンライン情報
+  googleMapUrl?: string;
+  website?: string;
+  onlineStore?: string;
+  socialMedia?: {
+    instagram?: string;
+    twitter?: string;
+    facebook?: string;
+    line?: string;
+    youtube?: string;
+  };
+  // 連絡先・営業情報
+  phone?: string;
+  email?: string;
+  closedDays?: string;
 }
 
 // イベント進行状況の日本語ラベル
