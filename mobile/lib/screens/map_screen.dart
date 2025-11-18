@@ -710,9 +710,38 @@ class _MapScreenState extends State<MapScreen> {
       backgroundColor: Colors.transparent,
       builder: (context) => EventDetailSheet(
         event: event,
-        onShowMap: () {
+        onShowMap: () async {
           Navigator.pop(context);
-          _centerOnEvent(event);
+          
+          // 主催店舗を取得してフォーカス
+          if (event.shopId != null) {
+            final shop = _shops.firstWhere(
+              (s) => s.id == event.shopId,
+              orElse: () => ShopModel(
+                id: '',
+                shopName: '',
+                description: '',
+                maniacPoint: '',
+                shopCategory: '',
+                address: '',
+                images: [],
+                ownerUserId: '',
+                approvalStatus: '',
+                createdAt: DateTime.now(),
+                updatedAt: DateTime.now(),
+              ),
+            );
+            
+            if (shop.id.isNotEmpty && shop.location != null) {
+              _centerOnShop(shop);
+            } else {
+              // 主催店舗が見つからない場合はイベントにフォーカス
+              _centerOnEvent(event);
+            }
+          } else {
+            // shopIdがない場合はイベントにフォーカス
+            _centerOnEvent(event);
+          }
         },
       ),
     );

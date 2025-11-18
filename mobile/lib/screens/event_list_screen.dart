@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../models/event_model.dart';
+import '../models/shop_model.dart';
 import '../widgets/favorite_button.dart';
 import '../widgets/event_detail_sheet.dart';
 import '../widgets/event_filter_sheet.dart';
@@ -478,12 +479,33 @@ class EventCard extends StatelessWidget {
       backgroundColor: Colors.transparent,
       builder: (context) => EventDetailSheet(
         event: event,
-        onShowMap: () {
+        onShowMap: () async {
           // 現在の画面を閉じる
           Navigator.pop(context);
           
-          // 地図タブに切り替えてイベントにフォーカス
-          if (context.mounted) {
+          // 主催店舗を取得してフォーカス
+          if (context.mounted && event.shopId != null) {
+            try {
+              final shopDoc = await FirebaseFirestore.instance
+                  .collection('shops')
+                  .doc(event.shopId)
+                  .get();
+              
+              if (shopDoc.exists && context.mounted) {
+                final shop = ShopModel.fromFirestore(shopDoc);
+                HomeScreen.switchToTab(context, 2, focusShop: shop);
+              } else if (context.mounted) {
+                // 主催店舗が見つからない場合はイベントにフォーカス
+                HomeScreen.switchToTab(context, 2, focusEvent: event);
+              }
+            } catch (e) {
+              // エラーが発生した場合はイベントにフォーカス
+              if (context.mounted) {
+                HomeScreen.switchToTab(context, 2, focusEvent: event);
+              }
+            }
+          } else if (context.mounted) {
+            // shopIdがない場合はイベントにフォーカス
             HomeScreen.switchToTab(context, 2, focusEvent: event);
           }
         },
