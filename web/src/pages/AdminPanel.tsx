@@ -163,12 +163,46 @@ export default function AdminPanel() {
       setLoading(true);
       setError('');
 
-      const facilitiesQuery = query(collection(db, 'publicFacilities'));
-      const querySnapshot = await getDocs(facilitiesQuery);
-      const facilitiesData = querySnapshot.docs.map(doc => {
-        const data = doc.data() as any;
-        return { id: doc.id, ...data } as FirestorePublicFacility;
+      // 公共施設カテゴリーの店舗を取得
+      const shopsRef = collection(db, 'shops');
+      const q1 = query(shopsRef, where('shopCategory', '==', '駐車場'));
+      const q2 = query(shopsRef, where('shopCategory', '==', 'トイレ'));
+      const q3 = query(shopsRef, where('shopCategory', '==', '案内所'));
+      
+      const [snapshot1, snapshot2, snapshot3] = await Promise.all([
+        getDocs(q1),
+        getDocs(q2),
+        getDocs(q3)
+      ]);
+      
+      const publicFacilityShops: FirestoreShop[] = [];
+      
+      snapshot1.docs.forEach(doc => {
+        publicFacilityShops.push({ id: doc.id, ...doc.data() } as FirestoreShop);
       });
+      snapshot2.docs.forEach(doc => {
+        publicFacilityShops.push({ id: doc.id, ...doc.data() } as FirestoreShop);
+      });
+      snapshot3.docs.forEach(doc => {
+        publicFacilityShops.push({ id: doc.id, ...doc.data() } as FirestoreShop);
+      });
+
+      // FirestorePublicFacility形式に変換（互換性のため）
+      const facilitiesData = publicFacilityShops.map(shop => ({
+        id: shop.id,
+        name: shop.shopName,
+        description: shop.description,
+        facilityType: shop.shopCategory,
+        location: shop.location,
+        address: shop.address,
+        images: shop.images,
+        website: shop.website,
+        phone: shop.phone,
+        adminId: shop.ownerUserId,
+        isActive: shop.approvalStatus === 'approved',
+        createdAt: shop.createdAt,
+        updatedAt: shop.updatedAt
+      } as FirestorePublicFacility));
 
       setFacilities(facilitiesData);
     } catch (error: any) {
@@ -181,9 +215,11 @@ export default function AdminPanel() {
 
   const toggleFacilityStatus = async (facilityId: string, currentStatus: boolean) => {
     try {
-      const facilityRef = doc(db, 'publicFacilities', facilityId);
-      await updateDoc(facilityRef, {
-        isActive: !currentStatus,
+      // 店舗として更新
+      const shopRef = doc(db, 'shops', facilityId);
+      await updateDoc(shopRef, {
+        approvalStatus: !currentStatus ? 'approved' : 'pending',
+        updatedAt: new Date()
       });
 
       // リストを更新
@@ -644,16 +680,20 @@ export default function AdminPanel() {
 
         {/* 公共施設管理タブ */}
         <TabPanel value={tabValue} index={5}>
-          <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="h5" component="h2">
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="h5" component="h2" gutterBottom>
               公共施設管理
             </Typography>
+            <Alert severity="info" sx={{ mb: 2 }}>
+              公共施設（駐車場、トイレ、案内所）は店舗として登録されます。
+              店舗登録時にカテゴリーから「駐車場」「トイレ」「案内所」を選択してください。
+            </Alert>
             <Button
               variant="contained"
               startIcon={<Add />}
-              onClick={() => window.location.href = '/admin/facility/new'}
+              onClick={() => window.location.href = '/shop/new'}
             >
-              新規公共施設追加
+              新規公共施設を店舗として追加
             </Button>
           </Box>
 
@@ -674,9 +714,9 @@ export default function AdminPanel() {
                 <Button
                   variant="contained"
                   startIcon={<Add />}
-                  onClick={() => window.location.href = '/admin/facility/new'}
+                  onClick={() => window.location.href = '/shop/new?category=public'}
                 >
-                  新規追加
+                  新規追加（店舗として登録）
                 </Button>
               </CardContent>
             </Card>
@@ -719,7 +759,7 @@ export default function AdminPanel() {
                         <Button
                           variant="outlined"
                           size="small"
-                          onClick={() => window.location.href = `/admin/facility/${facility.id}`}
+                          onClick={() => window.location.href = `/shop/${facility.id}`}
                         >
                           編集
                         </Button>

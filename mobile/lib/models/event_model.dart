@@ -14,6 +14,7 @@ class EventModel {
   final String approvalStatus; // pending, approved, rejected
   final List<String> images;
   final List<String>? participatingShops;
+  final String? shopId; // 主催店舗ID
   final String? detailUrl; // イベント詳細URL
   final String ownerUserId;
   final DateTime createdAt;
@@ -35,6 +36,7 @@ class EventModel {
     required this.approvalStatus,
     required this.images,
     this.participatingShops,
+    this.shopId,
     this.detailUrl,
     required this.ownerUserId,
     required this.createdAt,
@@ -83,6 +85,7 @@ class EventModel {
       participatingShops: data['participatingShops'] != null
           ? List<String>.from(data['participatingShops'])
           : null,
+      shopId: data['shopId'],
       detailUrl: data['detailUrl'],
       ownerUserId: data['ownerUserId'] ?? '',
       createdAt: (data['createdAt'] as Timestamp).toDate(),
@@ -110,6 +113,7 @@ class EventModel {
       'approvalStatus': approvalStatus,
       'images': images,
       'participatingShops': participatingShops,
+      if (shopId != null) 'shopId': shopId,
       if (detailUrl != null) 'detailUrl': detailUrl,
       'ownerUserId': ownerUserId,
       'createdAt': Timestamp.fromDate(createdAt),

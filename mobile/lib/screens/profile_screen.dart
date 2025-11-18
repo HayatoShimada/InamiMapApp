@@ -444,7 +444,6 @@ class ProfileScreen extends StatelessWidget {
               Text('個人情報の取り扱いに関するお問い合わせ：'),
               Text('85-Store'),
               Text('Email: info@85-store.com'),
-              Text('電話: 0763-82-5850'),
             ],
           ),
         ),
@@ -469,58 +468,81 @@ class ProfileScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '第1条（利用規約の適用）',
+                '第1条（本規約の適用）',
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 8),
-              Text('本規約は、井波マップアプリ（以下「本アプリ」）の利用に関する条件を定めるものです。'),
+              Text('この利用規約（以下「本規約」）は、85-Store（以下「運営者」）が提供する井波マップアプリ（以下「本アプリ」）の利用条件を定めるものです。'),
               SizedBox(height: 16),
               
               Text(
-                '第2条（利用条件）',
+                '第2条（利用登録）',
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 8),
-              Text('本アプリを利用するには、Googleアカウントでのログインが必要です。'),
+              Text('本アプリの利用にはGoogleアカウントによる認証が必要です。利用者は正確な情報を提供するものとします。'),
               SizedBox(height: 16),
               
               Text(
-                '第3条（禁止事項）',
+                '第3条（個人情報の取扱い）',
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 8),
-              Text('以下の行為を禁止します：'),
-              Text('・虚偽の情報を登録する行為'),
-              Text('・他のユーザーに迷惑をかける行為'),
-              Text('・本アプリの運営を妨げる行為'),
-              Text('・法令に違反する行為'),
+              Text('運営者は、利用者の個人情報を別途定めるプライバシーポリシーに従い適切に取り扱います。'),
               SizedBox(height: 16),
               
               Text(
-                '第4条（免責事項）',
+                '第4条（禁止事項）',
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 8),
-              Text('本アプリの利用により生じた損害について、運営者は一切の責任を負いません。'),
+              Text('利用者は以下の行為をしてはなりません：'),
+              Text('・法令または公序良俗に違反する行為'),
+              Text('・犯罪行為に関連する行為'),
+              Text('・運営者または第三者の知的財産権を侵害する行為'),
+              Text('・本アプリの運営を妨害する行為'),
+              Text('・不正アクセスまたはこれを試みる行為'),
+              Text('・その他、運営者が不適切と判断する行為'),
               SizedBox(height: 16),
               
               Text(
-                '第5条（サービスの変更・終了）',
+                '第5条（本アプリの提供の停止等）',
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 8),
-              Text('運営者は、事前の通知なく本アプリの内容を変更または終了することができます。'),
+              Text('運営者は、以下の場合には事前の通知なく本アプリの全部または一部の提供を停止・中断できるものとします：'),
+              Text('・本アプリのシステムの保守・更新を行う場合'),
+              Text('・地震、落雷、火災等の不可抗力により提供が困難な場合'),
+              Text('・その他、運営者が停止・中断を必要と判断した場合'),
               SizedBox(height: 16),
               
               Text(
-                '第6条（規約の変更）',
+                '第6条（免責事項）',
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 8),
-              Text('本規約は予告なく変更される場合があります。変更後の規約は、本アプリ内で公開された時点から効力を生じます。'),
+              Text('運営者は、本アプリに事実上または法律上の瑕疵（安全性、信頼性、正確性、完全性、有効性、特定の目的への適合性、セキュリティなどに関する欠陥、エラーやバグ、権利侵害などを含みます。）がないことを保証するものではありません。'),
               SizedBox(height: 16),
               
-              Text('制定日: 2024年11月1日'),
+              Text(
+                '第7条（利用規約の変更）',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 8),
+              Text('運営者は、必要と判断した場合には、利用者に通知することなくいつでも本規約を変更することができるものとします。変更後の本規約は、本アプリ内に掲載したときから効力を生じるものとします。'),
+              SizedBox(height: 16),
+              
+              Text(
+                '第8条（準拠法・裁判管轄）',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 8),
+              Text('本規約の解釈にあたっては、日本法を準拠法とします。本アプリに関して紛争が生じた場合には、運営者の所在地を管轄する裁判所を専属的合意管轄とします。'),
+              SizedBox(height: 16),
+              
+              Text('制定日: 2024年11月18日'),
+              Text('運営者: 85-Store'),
+              Text('連絡先: info@85-store.com'),
             ],
           ),
         ),
@@ -548,26 +570,6 @@ class ProfileScreen extends StatelessWidget {
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 16),
-            
-            Row(
-              children: [
-                Icon(Icons.location_on, size: 20, color: Colors.grey),
-                SizedBox(width: 8),
-                Expanded(
-                  child: Text('〒932-0231\n富山県南砺市井波3110-1'),
-                ),
-              ],
-            ),
-            SizedBox(height: 12),
-            
-            Row(
-              children: [
-                Icon(Icons.phone, size: 20, color: Colors.grey),
-                SizedBox(width: 8),
-                Text('0763-82-5850'),
-              ],
-            ),
-            SizedBox(height: 12),
             
             Row(
               children: [

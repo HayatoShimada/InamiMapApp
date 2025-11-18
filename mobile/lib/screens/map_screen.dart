@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:geolocator/geolocator.dart' as geo;
 import '../models/shop_model.dart';
 import '../models/event_model.dart';
 import '../widgets/favorite_button.dart';
 import '../widgets/shop_detail_sheet.dart';
 import '../widgets/event_detail_sheet.dart';
+import '../widgets/map_filter_sheet.dart';
 
 class MapScreen extends StatefulWidget {
   final ShopModel? focusShop;
@@ -27,7 +29,8 @@ class _MapScreenState extends State<MapScreen> {
   List<ShopModel> _shops = [];
   List<EventModel> _events = [];
   bool _isLoading = true;
-  String _selectedFilter = 'すべて';
+  MapFilters _filters = MapFilters();
+  LatLng? _userLocation;
 
   @override
   void initState() {
@@ -113,6 +116,22 @@ class _MapScreenState extends State<MapScreen> {
       }
     }
   }
+  
+  void _showFilterSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => MapFilterSheet(
+        initialFilters: _filters,
+        onApply: (filters) {
+          setState(() {
+            _filters = filters;
+          });
+        },
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -122,6 +141,34 @@ class _MapScreenState extends State<MapScreen> {
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
         actions: [
+          Stack(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.filter_list),
+                onPressed: _showFilterSheet,
+              ),
+              if (_filters.hasActiveFilters)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Text(
+                      '${_filters.activeFilterCount}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
           IconButton(
             icon: const Icon(Icons.my_location),
             onPressed: () => _centerOnInami(),
@@ -133,42 +180,6 @@ class _MapScreenState extends State<MapScreen> {
             tooltip: '更新',
           ),
         ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(60),
-          child: Container(
-            height: 50,
-            margin: const EdgeInsets.only(bottom: 8),
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              children: [
-                'すべて',
-                '店舗のみ',
-                'イベントのみ',
-              ].map((filter) {
-                final isSelected = _selectedFilter == filter;
-                return Container(
-                  margin: const EdgeInsets.only(right: 8),
-                  child: FilterChip(
-                    label: Text(filter),
-                    selected: isSelected,
-                    onSelected: (selected) {
-                      setState(() {
-                        _selectedFilter = filter;
-                      });
-                    },
-                    backgroundColor: Colors.white,
-                    selectedColor: Colors.blue.shade100,
-                    labelStyle: TextStyle(
-                      color: isSelected ? Colors.blue : Colors.grey.shade700,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-        ),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -214,9 +225,9 @@ class _MapScreenState extends State<MapScreen> {
     List<Marker> markers = [];
 
     // 店舗マーカー
-    if (_selectedFilter == 'すべて' || _selectedFilter == '店舗のみ') {
+    if (_filters.selectedType == 'すべて' || _filters.selectedType == '店舗のみ') {
       for (final shop in _shops) {
-        if (shop.location != null) {
+        if (shop.location != null && _shouldShowShop(shop)) {
           markers.add(
             Marker(
               point: LatLng(shop.location!.latitude, shop.location!.longitude),
@@ -224,9 +235,9 @@ class _MapScreenState extends State<MapScreen> {
               height: 40,
               child: GestureDetector(
                 onTap: () => _showShopDetails(shop),
-                child: const Icon(
-                  Icons.store,
-                  color: Colors.blue,
+                child: Icon(
+                  _getShopIcon(shop.shopCategory),
+                  color: _getShopIconColor(shop.shopCategory),
                   size: 40,
                 ),
               ),
@@ -237,7 +248,7 @@ class _MapScreenState extends State<MapScreen> {
     }
 
     // イベントマーカー
-    if (_selectedFilter == 'すべて' || _selectedFilter == 'イベントのみ') {
+    if (_filters.selectedType == 'すべて' || _filters.selectedType == 'イベントのみ') {
       for (final event in _events) {
         // イベント自体に座標がある場合はそれを優先
         if (event.coordinates != null) {
@@ -262,17 +273,73 @@ class _MapScreenState extends State<MapScreen> {
         } 
         // イベントに座標がない場合、参加店舗の座標を使用
         else if (event.participatingShops != null && event.participatingShops!.isNotEmpty) {
-          final participatingShop = _shops.firstWhere(
-            (shop) => event.participatingShops!.contains(shop.id),
-            orElse: () => _shops.first,
+          // 参加店舗の中から有効な座標を持つ店舗を探す
+          for (final shopId in event.participatingShops!) {
+            final shop = _shops.firstWhere(
+              (s) => s.id == shopId,
+              orElse: () => ShopModel(
+                id: '',
+                shopName: '',
+                description: '',
+                maniacPoint: '',
+                shopCategory: '',
+                address: '',
+                images: [],
+                ownerUserId: '',
+                approvalStatus: '',
+                createdAt: DateTime.now(),
+                updatedAt: DateTime.now(),
+              ),
+            );
+            
+            if (shop.id.isNotEmpty && shop.location != null) {
+              markers.add(
+                Marker(
+                  point: LatLng(
+                    shop.location!.latitude,
+                    shop.location!.longitude,
+                  ),
+                  width: 40,
+                  height: 40,
+                  child: GestureDetector(
+                    onTap: () => _showEventDetails(event),
+                    child: const Icon(
+                      Icons.event,
+                      color: Colors.green,
+                      size: 40,
+                    ),
+                  ),
+                ),
+              );
+              break; // 最初の有効な店舗の座標を使用
+            }
+          }
+        }
+        // 主催店舗がある場合はその座標を使用
+        else if (event.shopId != null && event.shopId!.isNotEmpty) {
+          final hostShop = _shops.firstWhere(
+            (shop) => shop.id == event.shopId,
+            orElse: () => ShopModel(
+              id: '',
+              shopName: '',
+              description: '',
+              maniacPoint: '',
+              shopCategory: '',
+              address: '',
+              images: [],
+              ownerUserId: '',
+              approvalStatus: '',
+              createdAt: DateTime.now(),
+              updatedAt: DateTime.now(),
+            ),
           );
           
-          if (participatingShop.location != null) {
+          if (hostShop.id.isNotEmpty && hostShop.location != null) {
             markers.add(
               Marker(
                 point: LatLng(
-                  participatingShop.location!.latitude,
-                  participatingShop.location!.longitude,
+                  hostShop.location!.latitude,
+                  hostShop.location!.longitude,
                 ),
                 width: 40,
                 height: 40,
@@ -293,10 +360,134 @@ class _MapScreenState extends State<MapScreen> {
 
     return markers;
   }
+  
+  bool _shouldShowShop(ShopModel shop) {
+    // カテゴリフィルター
+    if (_filters.selectedCategory != 'すべて') {
+      if (_filters.selectedCategory == '公共施設') {
+        // 公共施設カテゴリーの場合、駐車場、トイレ、案内所も含める
+        if (shop.shopCategory != '公共施設' && 
+            shop.shopCategory != '駐車場' && 
+            shop.shopCategory != 'トイレ' && 
+            shop.shopCategory != '案内所') {
+          return false;
+        }
+      } else if (shop.shopCategory != _filters.selectedCategory) {
+        return false;
+      }
+    }
+    
+    // 公共施設のみフィルター
+    if (_filters.selectedType == '公共施設のみ') {
+      if (shop.shopCategory != '公共施設' && 
+          shop.shopCategory != '駐車場' && 
+          shop.shopCategory != 'トイレ' && 
+          shop.shopCategory != '案内所') {
+        return false;
+      }
+    }
+    
+    // 営業中フィルター
+    if (_filters.showOnlyOpen) {
+      if (!_isShopOpen(shop)) {
+        return false;
+      }
+    }
+    
+    // オンラインストアフィルター
+    if (_filters.showOnlineStores) {
+      if (shop.onlineStore == null || shop.onlineStore!.isEmpty) {
+        return false;
+      }
+    }
+    
+    // イベント開催店舗フィルター
+    if (_filters.showWithEvents) {
+      bool hasEvent = false;
+      for (final event in _events) {
+        if (event.shopId == shop.id || 
+            (event.participatingShops != null && event.participatingShops!.contains(shop.id))) {
+          hasEvent = true;
+          break;
+        }
+      }
+      if (!hasEvent) {
+        return false;
+      }
+    }
+    
+    // 検索範囲フィルター
+    if (_filters.searchRadius != null && _userLocation != null) {
+      final distance = const Distance().as(
+        LengthUnit.Kilometer,
+        _userLocation!,
+        LatLng(shop.location!.latitude, shop.location!.longitude),
+      );
+      if (distance > _filters.searchRadius!) {
+        return false;
+      }
+    }
+    
+    return true;
+  }
+  
+  bool _isShopOpen(ShopModel shop) {
+    if (shop.businessHours == null) return true;
+    
+    final now = DateTime.now();
+    final weekday = now.weekday;
+    
+    BusinessHours? todayHours;
+    switch (weekday) {
+      case 1:
+        todayHours = shop.businessHours!.monday;
+        break;
+      case 2:
+        todayHours = shop.businessHours!.tuesday;
+        break;
+      case 3:
+        todayHours = shop.businessHours!.wednesday;
+        break;
+      case 4:
+        todayHours = shop.businessHours!.thursday;
+        break;
+      case 5:
+        todayHours = shop.businessHours!.friday;
+        break;
+      case 6:
+        todayHours = shop.businessHours!.saturday;
+        break;
+      case 7:
+        todayHours = shop.businessHours!.sunday;
+        break;
+    }
+    
+    if (todayHours == null || todayHours.closed) return false;
+    
+    if (todayHours.open == null || todayHours.close == null) return true;
+    
+    final openTime = _parseTime(todayHours.open!);
+    final closeTime = _parseTime(todayHours.close!);
+    final currentMinutes = now.hour * 60 + now.minute;
+    
+    return currentMinutes >= openTime && currentMinutes <= closeTime;
+  }
+  
+  int _parseTime(String time) {
+    final parts = time.split(':');
+    if (parts.length != 2) return 0;
+    final hour = int.tryParse(parts[0]) ?? 0;
+    final minute = int.tryParse(parts[1]) ?? 0;
+    return hour * 60 + minute;
+  }
 
   Widget _buildItemsList() {
-    final filteredShops = _selectedFilter == 'イベントのみ' ? <ShopModel>[] : _shops;
-    final filteredEvents = _selectedFilter == '店舗のみ' ? <EventModel>[] : _events;
+    final filteredShops = (_filters.selectedType == 'すべて' || _filters.selectedType == '店舗のみ' || _filters.selectedType == '公共施設のみ')
+        ? _shops.where(_shouldShowShop).toList()
+        : <ShopModel>[];
+    final filteredEvents = (_filters.selectedType == 'すべて' || _filters.selectedType == 'イベントのみ')
+        ? _events
+        : <EventModel>[];
     
     final totalItems = filteredShops.length + filteredEvents.length;
 
@@ -370,6 +561,34 @@ class _MapScreenState extends State<MapScreen> {
         ],
       ),
     );
+  }
+
+  // カテゴリに応じたアイコンを返す
+  IconData _getShopIcon(String category) {
+    switch (category) {
+      case '駐車場':
+        return Icons.local_parking;
+      case 'トイレ':
+        return Icons.wc;
+      case '案内所':
+        return Icons.info_outline;
+      default:
+        return Icons.store;
+    }
+  }
+  
+  // カテゴリに応じたアイコンカラーを返す
+  Color _getShopIconColor(String category) {
+    switch (category) {
+      case '駐車場':
+        return Colors.orange;
+      case 'トイレ':
+        return Colors.teal;
+      case '案内所':
+        return Colors.purple;
+      default:
+        return Colors.blue;
+    }
   }
 
   void _centerOnInami() {

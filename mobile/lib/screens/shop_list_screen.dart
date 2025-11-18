@@ -30,6 +30,7 @@ class _ShopListScreenState extends State<ShopListScreen> {
     'ギャラリー',
     'お土産',
     '衣料品',
+    '公共施設',
     'その他',
   ];
   
@@ -254,8 +255,18 @@ class _ShopListScreenState extends State<ShopListScreen> {
               .map((doc) => ShopModel.fromFirestore(doc))
               .where((shop) {
                 // カテゴリーフィルター
-                if (_selectedCategory != 'すべて' && shop.shopCategory != _selectedCategory) {
-                  return false;
+                if (_selectedCategory != 'すべて') {
+                  if (_selectedCategory == '公共施設') {
+                    // 公共施設カテゴリーの場合、駐車場、トイレ、案内所も含める
+                    if (shop.shopCategory != '公共施設' && 
+                        shop.shopCategory != '駐車場' && 
+                        shop.shopCategory != 'トイレ' && 
+                        shop.shopCategory != '案内所') {
+                      return false;
+                    }
+                  } else if (shop.shopCategory != _selectedCategory) {
+                    return false;
+                  }
                 }
                 
                 // 検索フィルター
@@ -365,6 +376,14 @@ class ShopCard extends StatefulWidget {
 
 class _ShopCardState extends State<ShopCard> {
   bool get isOpen => _isShopOpen(widget.shop);
+  
+  // カテゴリ表示名の変換
+  String _getCategoryDisplayName(String category) {
+    if (category == '駐車場' || category == 'トイレ' || category == '案内所') {
+      return '公共施設';
+    }
+    return category;
+  }
   
   bool _isShopOpen(ShopModel shop) {
     if (shop.businessHours == null) return true;
@@ -606,7 +625,7 @@ class _ShopCardState extends State<ShopCard> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      widget.shop.shopCategory,
+                      _getCategoryDisplayName(widget.shop.shopCategory),
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.blue.shade700,

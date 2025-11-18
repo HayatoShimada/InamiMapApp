@@ -21,9 +21,8 @@ import {
   Divider,
   InputAdornment,
 } from '@mui/material';
-import { Save, Cancel, Event, Schedule, Language, LocationOn } from '@mui/icons-material';
+import { Save, Cancel, Event, Schedule, LocationOn } from '@mui/icons-material';
 import { Timestamp, GeoPoint } from 'firebase/firestore';
-import { getFunctions, httpsCallable } from 'firebase/functions';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../contexts/AuthContext';
@@ -50,7 +49,6 @@ export default function EventForm() {
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [userShops, setUserShops] = useState<FirestoreShop[]>([]);
   const [allShops, setAllShops] = useState<FirestoreShop[]>([]);
-  const [extractingCoords, setExtractingCoords] = useState(false);
 
   const { getDocument, addDocument, updateDocument } = useFirestore<FirestoreEvent>('events');
 
@@ -69,11 +67,6 @@ export default function EventForm() {
       eventTimeStart: new Date(),
       eventTimeEnd: new Date(),
       location: '',
-      coordinates: {
-        latitude: 36.5569, // 井波の中心座標
-        longitude: 136.9628,
-      },
-      googleMapUrl: '',
       shopId: '',
       participatingShops: [],
       images: [],
@@ -85,115 +78,7 @@ export default function EventForm() {
   const isEditMode = !!id;
   const canEditProgress = isEditMode && eventData?.ownerUserId === currentUser?.uid;
   const isAdmin = userData?.role === 'admin';
-  
-  // 現在のGoogleマップURLを監視
-  const currentGoogleMapUrl = watch('googleMapUrl');
 
-  // GoogleマップURLから座標を抽出する関数
-  const extractCoordinatesFromUrl = async (url: string) => {
-    if (!url) {
-      setError('GoogleマップURLを入力してください。');
-      return;
-    }
-
-    setExtractingCoords(true);
-    setError('');
-
-    try {
-      // 短縮URL（goo.gl）の場合はCloud Functionで展開
-      if (url.includes('maps.app.goo.gl') || url.includes('goo.gl')) {
-        try {
-          console.log('短縮URL検出、Cloud Functionで展開中...');
-          const functions = getFunctions();
-          const expandShortUrlFunction = httpsCallable(functions, 'expandShortUrl');
-          
-          const result = await expandShortUrlFunction({ url });
-          const data = result.data as {
-            success: boolean;
-            expandedUrl?: string;
-            coordinates?: { latitude: number; longitude: number };
-            error?: string;
-          };
-
-          if (data.success && data.coordinates) {
-            setValue('coordinates' as any, { latitude: data.coordinates.latitude, longitude: data.coordinates.longitude });
-            setError('');
-            console.log('座標抽出成功（Cloud Function）:', data.coordinates);
-            return;
-          } else {
-            throw new Error(data.error || 'Cloud Functionから座標を取得できませんでした');
-          }
-        } catch (cloudError) {
-          console.error('Cloud Function呼び出しエラー:', cloudError);
-          setError('短縮URLの展開に失敗しました。以下の手順で座標を取得してください：\n1. リンクをブラウザで開く\n2. URLバーから完全なURLをコピー\n3. そのURLを貼り付けて再実行');
-          return;
-        }
-      }
-
-      // 通常のURL処理（改善版）
-      let lat: number | null = null;
-      let lng: number | null = null;
-
-      // まず、!3d...!4d... パターンを探す（最も正確な店舗座標、高精度対応）
-      const pinPattern = /!3d(-?\d+\.\d{1,20})!4d(-?\d+\.\d{1,20})/;
-      const pinMatch = url.match(pinPattern);
-
-      if (pinMatch) {
-        // !3d!4d形式が見つかった場合（店舗のピン位置）
-        lat = parseFloat(pinMatch[1]);
-        lng = parseFloat(pinMatch[2]);
-        console.log('ピンの正確な座標を検出:', { lat, lng });
-      } else {
-        // !3d!4d形式が見つからない場合は、他のパターンを試す
-        
-        // パターン1: place座標パターン /place/.../@lat,lng（高精度対応）
-        const placePattern = /\/place\/[^\/]+\/@(-?\d+\.\d{1,20}),(-?\d+\.\d{1,20})/;
-        const placeMatch = url.match(placePattern);
-        
-        if (placeMatch) {
-          lat = parseFloat(placeMatch[1]);
-          lng = parseFloat(placeMatch[2]);
-          console.log('place座標を検出:', { lat, lng });
-        } else {
-          // パターン2: クエリパラメータの座標 ?q=lat,lng（高精度対応）
-          const queryPattern = /[?&]q=(-?\d+\.\d{1,20})[,+](-?\d+\.\d{1,20})/;
-          const queryMatch = url.match(queryPattern);
-          
-          if (queryMatch) {
-            lat = parseFloat(queryMatch[1]);
-            lng = parseFloat(queryMatch[2]);
-            console.log('クエリ座標を検出:', { lat, lng });
-          } else {
-            // パターン3: @座標形式（カメラ位置なので精度は低い、高精度対応）
-            const cameraPattern = /@(-?\d+\.\d{1,20}),(-?\d+\.\d{1,20})/;
-            const cameraMatch = url.match(cameraPattern);
-            
-            if (cameraMatch) {
-              lat = parseFloat(cameraMatch[1]);
-              lng = parseFloat(cameraMatch[2]);
-              console.log('カメラ座標を検出（精度注意）:', { lat, lng });
-              setError('⚠️ URLから座標を取得しましたが、カメラ位置の可能性があります。より正確な座標を取得するには、下記の「正確な座標の取得方法」をご確認ください。');
-            }
-          }
-        }
-      }
-
-      if (lat !== null && lng !== null) {
-        // 座標をフォームに設定
-        setValue('coordinates' as any, { latitude: lat, longitude: lng });
-        setError('');
-        console.log('座標抽出成功:', { lat, lng });
-      } else {
-        console.log('座標抽出失敗、URL:', url);
-        setError('GoogleマップURLから座標を抽出できませんでした。\n\n以下の形式のURLをお試しください：\n• https://www.google.com/maps/@緯度,経度,倍率z\n• https://www.google.com/maps/place/場所名/@緯度,経度,倍率z\n• https://maps.app.goo.gl/短縮コード');
-      }
-    } catch (err) {
-      console.error('座標抽出エラー:', err);
-      setError('座標の抽出に失敗しました。');
-    } finally {
-      setExtractingCoords(false);
-    }
-  };
 
   // 店舗データの取得
   useEffect(() => {
@@ -266,10 +151,6 @@ export default function EventForm() {
         eventTimeStart: event.eventTimeStart.toDate(),
         eventTimeEnd: event.eventTimeEnd.toDate(),
         location: event.location,
-        coordinates: event.coordinates instanceof GeoPoint 
-          ? { latitude: event.coordinates.latitude, longitude: event.coordinates.longitude }
-          : event.coordinates || { latitude: 36.5569, longitude: 136.9628 },
-        googleMapUrl: event.googleMapUrl || '',
         shopId: event.shopId || '',
         participatingShops: event.participatingShops || [],
         images: [],
@@ -306,8 +187,6 @@ export default function EventForm() {
         eventTimeStart: Timestamp.fromDate(data.eventTimeStart),
         eventTimeEnd: Timestamp.fromDate(data.eventTimeEnd),
         location: data.location,
-        coordinates: toGeoPoint(data.coordinates) || getInamiCenter(),
-        googleMapUrl: data.googleMapUrl || undefined,
         participatingShops: data.participatingShops || [],
         images: imageUrls,
         detailUrl: data.detailUrl || undefined,
@@ -549,142 +428,27 @@ export default function EventForm() {
                   />
                 </Grid>
 
-                <Grid item xs={12} md={6}>
-                  <Controller
-                    name="coordinates.latitude"
-                    control={control}
-                    render={({ field }) => (
-                      <TextField
-                        {...field}
-                        label="緯度"
-                        type="number"
-                        fullWidth
-                        inputProps={{ step: 0.0000000001 }}
-                        helperText="Googleマップリンクから自動取得、または直接入力できます"
-                      />
-                    )}
-                  />
-                </Grid>
-
-                <Grid item xs={12} md={6}>
-                  <Controller
-                    name="coordinates.longitude"
-                    control={control}
-                    render={({ field }) => (
-                      <TextField
-                        {...field}
-                        label="経度"
-                        type="number"
-                        fullWidth
-                        inputProps={{ step: 0.0000000001 }}
-                        helperText="Googleマップリンクから自動取得、または直接入力できます"
-                      />
-                    )}
-                  />
-                </Grid>
 
                 <Grid item xs={12}>
-                  <Controller
-                    name="googleMapUrl"
-                    control={control}
-                    render={({ field }) => (
-                      <TextField
-                        {...field}
-                        label="Googleマップリンク または 座標"
-                        fullWidth
-                        placeholder="https://maps.google.com/... または 35.681234, 139.767123"
-                        helperText="GoogleマップのURL、または「緯度, 経度」の形式で直接入力できます"
-                        InputProps={{
-                          startAdornment: (
-                            <InputAdornment position="start">
-                              <Language color="action" />
-                            </InputAdornment>
-                          ),
-                        }}
-                        onChange={(e) => {
-                          field.onChange(e);
-                          const value = e.target.value;
-                          // 座標の直接入力を検出（例: 35.681234, 139.767123）高精度対応
-                          const coordPattern = /^\s*(-?\d+\.\d{1,20})\s*,\s*(-?\d+\.\d{1,20})\s*$/;
-                          const coordMatch = value.match(coordPattern);
-                          if (coordMatch) {
-                            const lat = parseFloat(coordMatch[1]);
-                            const lng = parseFloat(coordMatch[2]);
-                            setValue('coordinates.latitude' as any, lat);
-                            setValue('coordinates.longitude' as any, lng);
-                            setError('');
-                            console.log('座標を直接入力:', { lat, lng });
-                          }
-                        }}
-                      />
-                    )}
-                  />
-                  {currentGoogleMapUrl && (
-                    <Box sx={{ mt: 1 }}>
-                      <Button
-                        variant="outlined"
-                        onClick={() => extractCoordinatesFromUrl(currentGoogleMapUrl)}
-                        disabled={extractingCoords}
-                        startIcon={extractingCoords ? <CircularProgress size={20} /> : <LocationOn />}
-                        size="small"
-                      >
-                        {extractingCoords ? '座標を抽出中...' : 'URLから座標を自動取得'}
-                      </Button>
-                    </Box>
-                  )}
-                  
-                  {/* GoogleマップURL使用方法チュートリアル */}
-                  <Box sx={{ mt: 2, p: 2, bgcolor: 'info.light', borderRadius: 1 }}>
-                    <Typography variant="h6" gutterBottom color="info.dark">
-                      正確な座標の取得方法
+                  <Alert severity="info" icon={<LocationOn />}>
+                    <Typography variant="subtitle1" gutterBottom>
+                      イベントの開催場所について
                     </Typography>
-                    
-                    <Box sx={{ mt: 2, mb: 2, p: 2, bgcolor: 'warning.light', borderRadius: 1 }}>
-                      <Typography variant="subtitle1" gutterBottom color="warning.dark">
-                        ⚠️ 重要：正確な座標を取得するコツ
+                    <Typography variant="body2">
+                      イベントの開催場所は、以下の方法で設定されます：
+                    </Typography>
+                    <Box component="ul" sx={{ mt: 1, mb: 0 }}>
+                      <Typography component="li" variant="body2">
+                        主催店舗を選択した場合：その店舗の登録位置が自動的に使用されます
                       </Typography>
-                      <Typography variant="body2" component="div" color="text.secondary">
-                        GoogleマップのURLには「カメラ位置」と「ピン位置」の2つの座標が含まれることがあります。<br />
-                        イベントの正確な位置を取得するには、以下の方法をお勧めします。
+                      <Typography component="li" variant="body2">
+                        参加店舗を選択した場合：各店舗の位置が地図上に表示されます
+                      </Typography>
+                      <Typography component="li" variant="body2">
+                        店舗と関連付けない場合：井波地区の中心位置が使用されます
                       </Typography>
                     </Box>
-
-                    <Typography variant="subtitle1" gutterBottom>
-                      <strong>方法1：PCで右クリック（最も確実）</strong>
-                    </Typography>
-                    <Typography variant="body2" component="div" sx={{ mb: 2 }}>
-                      1. GoogleマップでURLを開きます<br />
-                      2. <strong>開催場所を正確に右クリック</strong>します<br />
-                      3. メニュー最上部の座標（例：35.681234, 139.767123）をクリック<br />
-                      4. 座標がコピーされるので、下の緯度・経度欄に貼り付けます
-                    </Typography>
-
-                    <Typography variant="subtitle1" gutterBottom>
-                      <strong>方法2：スマートフォンでロングタップ</strong>
-                    </Typography>
-                    <Typography variant="body2" component="div" sx={{ mb: 2 }}>
-                      1. GoogleマップアプリでURLを開きます<br />
-                      2. 地図を拡大し、<strong>開催場所を長押し（ロングタップ）</strong>します<br />
-                      3. 画面上部に表示される座標をタップしてコピー<br />
-                      4. 座標を下の緯度・経度欄に貼り付けます
-                    </Typography>
-
-                    <Typography variant="subtitle1" gutterBottom>
-                      <strong>方法3：URLから自動取得</strong>
-                    </Typography>
-                    <Typography variant="body2" component="div">
-                      1. <a href="https://maps.google.com" target="_blank" rel="noopener noreferrer">Google Maps</a>を開きます<br />
-                      2. イベント開催場所を検索して「共有」→「リンクをコピー」<br />
-                      3. URLを上記フィールドに貼り付け<br />
-                      4. 「座標を自動取得」ボタンをクリック<br />
-                      <small>※ URLによってはカメラ位置が取得される場合があります</small>
-                    </Typography>
-
-                    <Typography variant="body2" sx={{ mt: 2, fontStyle: 'italic' }}>
-                      💡 ヒント：座標は「緯度, 経度」の形式で直接入力することもできます。<br />
-                      例：35.681234, 139.767123 のように入力してください。
-                    </Typography>
-                  </Box>
+                  </Alert>
                 </Grid>
 
                 <Grid item xs={12}>

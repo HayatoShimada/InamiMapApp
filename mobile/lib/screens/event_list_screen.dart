@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../models/event_model.dart';
 import '../widgets/favorite_button.dart';
 import '../widgets/event_detail_sheet.dart';
+import '../widgets/event_filter_sheet.dart';
 import 'home_screen.dart';
 
 class EventListScreen extends StatefulWidget {
@@ -14,8 +15,31 @@ class EventListScreen extends StatefulWidget {
 }
 
 class _EventListScreenState extends State<EventListScreen> {
-  String _selectedFilter = 'すべて';
-  final List<String> _filters = ['すべて', '開催予定', '開催中', '終了'];
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
+  EventFilters _filters = EventFilters();
+
+  void _showFilterSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => EventFilterSheet(
+        initialFilters: _filters,
+        onApply: (filters) {
+          setState(() {
+            _filters = filters;
+          });
+        },
+      ),
+    );
+  }
+  
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,37 +48,67 @@ class _EventListScreenState extends State<EventListScreen> {
         title: const Text('イベント一覧'),
         backgroundColor: Colors.green,
         foregroundColor: Colors.white,
+        actions: [
+          Stack(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.filter_list),
+                onPressed: _showFilterSheet,
+              ),
+              if (_filters.hasActiveFilters)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Text(
+                      '${_filters.activeFilterCount}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(60),
           child: Container(
-            height: 50,
-            margin: const EdgeInsets.only(bottom: 8),
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: _filters.length,
-              itemBuilder: (context, index) {
-                final filter = _filters[index];
-                final isSelected = _selectedFilter == filter;
-                
-                return Container(
-                  margin: const EdgeInsets.only(right: 8),
-                  child: FilterChip(
-                    label: Text(filter),
-                    selected: isSelected,
-                    onSelected: (selected) {
-                      setState(() {
-                        _selectedFilter = filter;
-                      });
-                    },
-                    backgroundColor: Colors.white,
-                    selectedColor: Colors.green.shade100,
-                    labelStyle: TextStyle(
-                      color: isSelected ? Colors.green : Colors.grey.shade700,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                    ),
-                  ),
-                );
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'イベント名で検索...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() {
+                            _searchQuery = '';
+                          });
+                        },
+                      )
+                    : null,
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+              onChanged: (query) {
+                setState(() {
+                  _searchQuery = query;
+                });
               },
             ),
           ),
@@ -82,16 +136,76 @@ class _EventListScreenState extends State<EventListScreen> {
           final events = snapshot.data!.docs
               .map((doc) => EventModel.fromFirestore(doc))
               .where((event) {
-                switch (_selectedFilter) {
-                  case '開催予定':
-                    return event.isScheduled;
-                  case '開催中':
-                    return event.isOngoing;
-                  case '終了':
-                    return event.isFinished;
-                  default:
-                    return true;
+                // 検索フィルター
+                if (_searchQuery.isNotEmpty &&
+                    !event.eventName.toLowerCase().contains(_searchQuery.toLowerCase()) &&
+                    !event.description.toLowerCase().contains(_searchQuery.toLowerCase())) {
+                  return false;
                 }
+                
+                // カテゴリフィルター
+                if (_filters.selectedCategory != 'すべて' && event.eventCategory != _filters.selectedCategory) {
+                  return false;
+                }
+                
+                // 進行状況フィルター
+                if (_filters.selectedProgress != 'すべて') {
+                  switch (_filters.selectedProgress) {
+                    case '開催予定':
+                      if (!event.isScheduled) return false;
+                      break;
+                    case '開催中':
+                      if (!event.isOngoing) return false;
+                      break;
+                    case '終了':
+                      if (!event.isFinished) return false;
+                      break;
+                    case '中止':
+                      if (!event.isCancelled) return false;
+                      break;
+                  }
+                }
+                
+                // 日付フィルター
+                final now = DateTime.now();
+                
+                if (_filters.todayOnly) {
+                  final startOfDay = DateTime(now.year, now.month, now.day);
+                  final endOfDay = DateTime(now.year, now.month, now.day, 23, 59, 59);
+                  if (event.eventTimeEnd.isBefore(startOfDay) || event.eventTimeStart.isAfter(endOfDay)) {
+                    return false;
+                  }
+                } else if (_filters.thisWeekOnly) {
+                  final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+                  final endOfWeek = startOfWeek.add(const Duration(days: 6, hours: 23, minutes: 59, seconds: 59));
+                  if (event.eventTimeEnd.isBefore(startOfWeek) || event.eventTimeStart.isAfter(endOfWeek)) {
+                    return false;
+                  }
+                } else if (_filters.thisMonthOnly) {
+                  final startOfMonth = DateTime(now.year, now.month, 1);
+                  final endOfMonth = DateTime(now.year, now.month + 1, 0, 23, 59, 59);
+                  if (event.eventTimeEnd.isBefore(startOfMonth) || event.eventTimeStart.isAfter(endOfMonth)) {
+                    return false;
+                  }
+                } else {
+                  // カスタム日付範囲
+                  if (_filters.startDate != null && event.eventTimeEnd.isBefore(_filters.startDate!)) {
+                    return false;
+                  }
+                  if (_filters.endDate != null) {
+                    final endOfDay = DateTime(_filters.endDate!.year, _filters.endDate!.month, _filters.endDate!.day, 23, 59, 59);
+                    if (event.eventTimeStart.isAfter(endOfDay)) {
+                      return false;
+                    }
+                  }
+                }
+                
+                // 参加店舗フィルター
+                if (_filters.hasParticipatingShops && (event.participatingShops == null || event.participatingShops!.isEmpty)) {
+                  return false;
+                }
+                
+                return true;
               })
               .toList();
 
@@ -107,7 +221,7 @@ class _EventListScreenState extends State<EventListScreen> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    _selectedFilter != 'すべて'
+                    _searchQuery.isNotEmpty || _filters.hasActiveFilters
                         ? '該当するイベントがありません'
                         : 'イベントが登録されていません',
                     style: TextStyle(
@@ -115,6 +229,18 @@ class _EventListScreenState extends State<EventListScreen> {
                       color: Colors.grey.shade600,
                     ),
                   ),
+                  if (_filters.hasActiveFilters) ...[
+                    const SizedBox(height: 16),
+                    TextButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          _filters = EventFilters();
+                        });
+                      },
+                      icon: const Icon(Icons.clear),
+                      label: const Text('フィルターをクリア'),
+                    ),
+                  ],
                 ],
               ),
             );
@@ -215,7 +341,27 @@ class EventCard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 4),
-                  _buildStatusChip(),
+                  Row(
+                    children: [
+                      _buildStatusChip(),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.purple.shade100,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          event.eventCategory,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.purple.shade700,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 8),
                   Text(
                     event.description,
