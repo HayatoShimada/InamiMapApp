@@ -83,12 +83,44 @@ else
     sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
 fi
 
+# Check and install/update Ruby if needed
+print_status "Checking Ruby version..."
+RUBY_VERSION=$(ruby -v 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || echo "0.0.0")
+REQUIRED_RUBY_VERSION="3.1.0"
+
+if [ "$(printf '%s\n' "$REQUIRED_RUBY_VERSION" "$RUBY_VERSION" | sort -V | head -n1)" != "$REQUIRED_RUBY_VERSION" ]; then
+    print_warning "Ruby version $RUBY_VERSION is too old. Required: $REQUIRED_RUBY_VERSION or higher"
+    print_status "Installing Ruby via Homebrew..."
+    brew install ruby
+    # Add Homebrew Ruby to PATH
+    if [[ ":$PATH:" != *":/opt/homebrew/opt/ruby/bin:"* ]]; then
+        echo 'export PATH="/opt/homebrew/opt/ruby/bin:$PATH"' >> ~/.zshrc
+        export PATH="/opt/homebrew/opt/ruby/bin:$PATH"
+    fi
+    print_success "Ruby installed. Please restart your terminal or run: source ~/.zshrc"
+else
+    print_success "Ruby version $RUBY_VERSION is sufficient"
+fi
+
 # Install CocoaPods for iOS dependencies
 if ! command -v pod &> /dev/null; then
     print_status "Installing CocoaPods..."
-    sudo gem install cocoapods
+    # Use gem without sudo when using Homebrew Ruby
+    if [[ -f "/opt/homebrew/opt/ruby/bin/gem" ]]; then
+        /opt/homebrew/opt/ruby/bin/gem install cocoapods
+    else
+        gem install cocoapods
+    fi
 else
     print_success "CocoaPods already installed"
+fi
+
+# Install Gradle for Android development
+if ! command -v gradle &> /dev/null; then
+    print_status "Installing Gradle..."
+    brew install gradle
+else
+    print_success "Gradle already installed"
 fi
 
 # Install additional tools

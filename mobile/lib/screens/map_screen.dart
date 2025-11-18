@@ -58,6 +58,12 @@ class _MapScreenState extends State<MapScreen> {
         _isLoading = false;
       });
     } catch (e) {
+      print('Error loading map data: $e');
+      print('Error type: ${e.runtimeType}');
+      if (e is FirebaseException) {
+        print('Firebase error code: ${e.code}');
+        print('Firebase error message: ${e.message}');
+      }
       setState(() {
         _isLoading = false;
       });
@@ -248,7 +254,7 @@ class _MapScreenState extends State<MapScreen> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, -2),
           ),

@@ -1,116 +1,103 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../models/user_model.dart';
-import '../services/auth_service.dart';
 
-class AuthProvider with ChangeNotifier {
-  final AuthService _authService = AuthService();
-  
-  UserModel? _currentUser;
+class AuthProvider extends ChangeNotifier {
+  final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
+
+  User? _user;
   bool _isLoading = false;
   String? _errorMessage;
 
-  UserModel? get currentUser => _currentUser;
+  User? get user => _user;
+  UserModel? get currentUser => _user != null ? UserModel.fromFirebaseUser(_user!) : null;
+  bool get isAuthenticated => _user != null;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
-  bool get isAuthenticated => _currentUser != null;
 
   AuthProvider() {
-    // 認証状態の変更を監視
-    _authService.authStateChanges.listen((User? firebaseUser) async {
-      if (firebaseUser != null) {
-        // ログイン済み
-        final userModel = await _authService.getUserFromFirestore(firebaseUser.uid);
-        _currentUser = userModel ?? UserModel.fromFirebaseUser(firebaseUser);
-      } else {
-        // ログアウト
-        _currentUser = null;
-      }
-      notifyListeners();
-    });
+    _firebaseAuth.authStateChanges().listen(_onAuthStateChanged);
   }
 
-  // Google Sign-In
+  void _onAuthStateChanged(User? user) {
+    _user = user;
+    notifyListeners();
+  }
+
   Future<bool> signInWithGoogle() async {
     try {
-      _setLoading(true);
-      _clearError();
+      _isLoading = true;
+      _errorMessage = null;
+      notifyListeners();
 
-      final userModel = await _authService.signInWithGoogle();
-      if (userModel != null) {
-        _currentUser = userModel;
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      
+      if (googleUser == null) {
+        _isLoading = false;
         notifyListeners();
+        return false;
+      }
+
+      final GoogleSignInAuthentication googleAuth = 
+          await googleUser.authentication;
+
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      await _firebaseAuth.signInWithCredential(credential);
+      return true;
+    } catch (error) {
+      _errorMessage = 'ログインに失敗しました: $error';
+      print('Google Sign In Error: $error');
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> signOut() async {
+    try {
+      _isLoading = true;
+      _errorMessage = null;
+      notifyListeners();
+
+      await Future.wait([
+        _firebaseAuth.signOut(),
+        _googleSignIn.signOut(),
+      ]);
+    } catch (error) {
+      _errorMessage = 'ログアウトに失敗しました: $error';
+      print('Sign Out Error: $error');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> deleteAccount() async {
+    try {
+      _isLoading = true;
+      _errorMessage = null;
+      notifyListeners();
+
+      if (_user != null) {
+        await _user!.delete();
+        await _googleSignIn.signOut();
         return true;
       }
       return false;
-    } catch (e) {
-      _setError('ログインに失敗しました: ${e.toString()}');
+    } catch (error) {
+      _errorMessage = 'アカウント削除に失敗しました: $error';
+      print('Delete Account Error: $error');
       return false;
     } finally {
-      _setLoading(false);
-    }
-  }
-
-  // サインアウト
-  Future<void> signOut() async {
-    try {
-      _setLoading(true);
-      _clearError();
-
-      await _authService.signOut();
-      _currentUser = null;
+      _isLoading = false;
       notifyListeners();
-    } catch (e) {
-      _setError('ログアウトに失敗しました: ${e.toString()}');
-    } finally {
-      _setLoading(false);
     }
-  }
-
-  // アカウント削除
-  Future<bool> deleteAccount() async {
-    try {
-      _setLoading(true);
-      _clearError();
-
-      await _authService.deleteAccount();
-      _currentUser = null;
-      notifyListeners();
-      return true;
-    } catch (e) {
-      _setError('アカウント削除に失敗しました: ${e.toString()}');
-      return false;
-    } finally {
-      _setLoading(false);
-    }
-  }
-
-  // ユーザー情報を更新
-  Future<void> refreshUser() async {
-    if (_currentUser != null) {
-      try {
-        final updatedUser = await _authService.getUserFromFirestore(_currentUser!.uid);
-        if (updatedUser != null) {
-          _currentUser = updatedUser;
-          notifyListeners();
-        }
-      } catch (e) {
-        print('ユーザー情報更新エラー: $e');
-      }
-    }
-  }
-
-  void _setLoading(bool loading) {
-    _isLoading = loading;
-    notifyListeners();
-  }
-
-  void _setError(String error) {
-    _errorMessage = error;
-    notifyListeners();
-  }
-
-  void _clearError() {
-    _errorMessage = null;
   }
 }

@@ -33,7 +33,7 @@ import {
   Schedule,
   LocationOn
 } from '@mui/icons-material';
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp, GeoPoint } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { useAuth } from '../contexts/AuthContext';
 import { useFirestore } from '../hooks/useFirestore';
@@ -42,6 +42,7 @@ import ImageUpload from '../components/ImageUpload';
 import BusinessHoursInput from '../components/BusinessHoursInput';
 import TemporaryStatusInput from '../components/TemporaryStatusInput';
 import ServicesInput from '../components/ServicesInput';
+import { toGeoPoint, extractCoordinatesFromGoogleMapsUrl, getInamiCenter } from '../utils/locationUtils';
 
 // デモ用のカテゴリ（実際の実装では管理者が管理するカテゴリから取得）
 const SHOP_CATEGORIES = [
@@ -153,8 +154,7 @@ export default function ShopForm() {
           };
 
           if (data.success && data.coordinates) {
-            setValue('location.latitude', data.coordinates.latitude);
-            setValue('location.longitude', data.coordinates.longitude);
+            setValue('location' as any, { latitude: data.coordinates.latitude, longitude: data.coordinates.longitude });
             setError('');
             console.log('座標抽出成功（Cloud Function）:', data.coordinates);
             return;
@@ -210,8 +210,7 @@ export default function ShopForm() {
 
       if (lat !== null && lng !== null) {
         // 座標をフォームに設定
-        setValue('location.latitude', lat);
-        setValue('location.longitude', lng);
+        setValue('location' as any, { latitude: lat, longitude: lng });
         setError('');
         console.log('座標抽出成功:', { lat, lng });
       } else {
@@ -273,7 +272,9 @@ export default function ShopForm() {
         maniacPoint: shop.maniacPoint,
         address: shop.address,
         shopCategory: shop.shopCategory,
-        location: shop.location,
+        location: shop.location instanceof GeoPoint 
+          ? { latitude: shop.location.latitude, longitude: shop.location.longitude }
+          : shop.location,
         images: [],
         googleMapUrl: shop.googleMapUrl || '',
         website: shop.website || '',
@@ -311,7 +312,7 @@ export default function ShopForm() {
         maniacPoint: data.maniacPoint,
         address: data.address,
         shopCategory: data.shopCategory,
-        location: data.location,
+        location: toGeoPoint(data.location) || getInamiCenter(),
         images: imageUrls,
         googleMapUrl: data.googleMapUrl,
         website: data.website,

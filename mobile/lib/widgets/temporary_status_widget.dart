@@ -41,8 +41,8 @@ class TemporaryStatusWidget extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: statusColor.withOpacity(0.1),
-        border: Border.all(color: statusColor.withOpacity(0.3)),
+        color: statusColor.withValues(alpha: 0.1),
+        border: Border.all(color: statusColor.withValues(alpha: 0.3)),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
@@ -77,10 +77,10 @@ class TemporaryStatusWidget extends StatelessWidget {
                 ),
             ],
           ),
-          if (message != null && message!.isNotEmpty) ...[
+          if (message != null && message.isNotEmpty) ...[
             const SizedBox(height: 4),
             Text(
-              message!,
+              message,
               style: TextStyle(
                 fontSize: 12,
                 color: Colors.grey[700],

@@ -1,4 +1,4 @@
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp, GeoPoint } from 'firebase/firestore';
 
 // Firestore用の型定義（Dateの代わりにTimestampを使用）
 export interface FirestoreUser {
@@ -20,10 +20,7 @@ export interface FirestoreShop {
   shopName: string;
   description: string;
   maniacPoint: string;
-  location: {
-    latitude: number;
-    longitude: number;
-  };
+  location: GeoPoint;
   address: string;
   shopCategory: string;
   images: string[]; // 最大5枚
@@ -85,10 +82,7 @@ export interface FirestoreMapLocation {
   id: string;
   name: string;
   description: string;
-  location: {
-    latitude: number;
-    longitude: number;
-  };
+  location: GeoPoint;
   address: string;
   category: string;
   images: string[];
@@ -150,10 +144,7 @@ export interface ShopFormData {
   maniacPoint: string;
   address: string;
   shopCategory: string;
-  location: {
-    latitude: number;
-    longitude: number;
-  };
+  location: GeoPoint;
   images: File[];
   // オンライン情報
   googleMapUrl?: string;
@@ -253,10 +244,7 @@ export interface FirestorePublicFacility {
   name: string;
   description: string;
   facilityType: string;
-  location: {
-    latitude: number;
-    longitude: number;
-  };
+  location: GeoPoint;
   address: string;
   images: string[];
   website?: string;
@@ -273,10 +261,7 @@ export interface PublicFacilityFormData {
   name: string;
   description: string;
   facilityType: string;
-  location: {
-    latitude: number;
-    longitude: number;
-  };
+  location: GeoPoint;
   address: string;
   images: File[];
   website?: string;

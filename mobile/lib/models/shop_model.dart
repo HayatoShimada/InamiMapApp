@@ -172,8 +172,28 @@ class ShopModel {
     required this.updatedAt,
   });
 
+  static GeoPoint? _parseGeoPoint(dynamic data) {
+    if (data == null) return null;
+    if (data is GeoPoint) return data;
+    if (data is Map<String, dynamic>) {
+      // Mapから緯度経度を取得してGeoPointを作成
+      final latitude = data['latitude'] ?? data['lat'] ?? data['_latitude'];
+      final longitude = data['longitude'] ?? data['lng'] ?? data['_longitude'] ?? data['lon'];
+      if (latitude != null && longitude != null) {
+        return GeoPoint(
+          latitude is num ? latitude.toDouble() : double.tryParse(latitude.toString()) ?? 0,
+          longitude is num ? longitude.toDouble() : double.tryParse(longitude.toString()) ?? 0,
+        );
+      }
+    }
+    return null;
+  }
+
   factory ShopModel.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+    final data = doc.data() as Map<String, dynamic>?;
+    if (data == null) {
+      throw Exception('Document data is null');
+    }
     return ShopModel(
       id: doc.id,
       shopName: data['shopName'] ?? '',
@@ -181,7 +201,7 @@ class ShopModel {
       maniacPoint: data['maniacPoint'] ?? '',
       shopCategory: data['shopCategory'] ?? '',
       address: data['address'] ?? '',
-      location: data['location'] as GeoPoint?,
+      location: _parseGeoPoint(data['location']),
       googleMapUrl: data['googleMapUrl'],
       website: data['website'],
       onlineStore: data['onlineStore'],
@@ -212,8 +232,12 @@ class ShopModel {
       temporaryStatus: data['temporaryStatus'] != null 
           ? TemporaryStatus.fromMap(data['temporaryStatus'])
           : null,
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
-      updatedAt: (data['updatedAt'] as Timestamp).toDate(),
+      createdAt: data['createdAt'] != null 
+          ? (data['createdAt'] as Timestamp).toDate()
+          : DateTime.now(),
+      updatedAt: data['updatedAt'] != null 
+          ? (data['updatedAt'] as Timestamp).toDate()
+          : DateTime.now(),
     );
   }
 

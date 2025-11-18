@@ -29,7 +29,7 @@ import {
   LocationOn,
   Info
 } from '@mui/icons-material';
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp, GeoPoint } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
 import { useFirestore } from '../hooks/useFirestore';
 import { 
@@ -38,6 +38,7 @@ import {
   PUBLIC_FACILITY_TYPES
 } from '../types/firebase';
 import ImageUpload from '../components/ImageUpload';
+import { toGeoPoint, fromGeoPoint, getInamiCenter } from '../utils/locationUtils';
 
 export default function PublicFacilityForm() {
   const { id } = useParams<{ id: string }>();
@@ -107,11 +108,15 @@ export default function PublicFacilityForm() {
       setImageUrls(facility.images || []);
       
       // フォームに既存データを設定
+      const locationObj = fromGeoPoint(facility.location);
       reset({
         name: facility.name,
         description: facility.description,
         facilityType: facility.facilityType,
-        location: facility.location,
+        location: locationObj || {
+          latitude: 36.5569, // 井波の中心座標
+          longitude: 136.9628,
+        },
         address: facility.address,
         images: [],
         website: facility.website || '',
@@ -134,11 +139,18 @@ export default function PublicFacilityForm() {
     try {
       setError('');
       
+      // Convert location to GeoPoint
+      const geoPoint = toGeoPoint(data.location);
+      if (!geoPoint) {
+        setError('有効な位置情報を入力してください。');
+        return;
+      }
+
       const facilityPayload = {
         name: data.name,
         description: data.description,
         facilityType: data.facilityType,
-        location: data.location,
+        location: geoPoint,
         address: data.address,
         images: imageUrls,
         website: data.website,
