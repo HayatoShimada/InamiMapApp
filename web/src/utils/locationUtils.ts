@@ -20,7 +20,9 @@ export interface LocationMap {
  * Convert various location formats to Firebase GeoPoint
  */
 export function toGeoPoint(location: GeoPoint | LocationObject | LocationMap | null | undefined): GeoPoint | null {
-  if (!location) return null;
+  if (!location) {
+    return null;
+  }
   
   // Already a GeoPoint
   if (location instanceof GeoPoint) {
@@ -100,7 +102,7 @@ export function extractCoordinatesFromGoogleMapsUrl(url: string): LocationObject
  * Get default Inami town center coordinates
  */
 export function getInamiCenter(): GeoPoint {
-  return new GeoPoint(36.5561, 136.7762);
+  return new GeoPoint(36.5569, 136.9628);
 }
 
 /**

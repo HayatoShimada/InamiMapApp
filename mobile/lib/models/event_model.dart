@@ -6,6 +6,8 @@ class EventModel {
   final String description;
   final String eventCategory; // イベントカテゴリ
   final String location;
+  final GeoPoint? coordinates; // 座標情報
+  final String? googleMapUrl; // GoogleマップURL
   final DateTime eventTimeStart;
   final DateTime eventTimeEnd;
   final String eventProgress; // scheduled, ongoing, finished, cancelled
@@ -25,6 +27,8 @@ class EventModel {
     required this.description,
     this.eventCategory = 'その他',
     required this.location,
+    this.coordinates,
+    this.googleMapUrl,
     required this.eventTimeStart,
     required this.eventTimeEnd,
     required this.eventProgress,
@@ -39,6 +43,26 @@ class EventModel {
     this.rejectionReason,
   });
 
+  static GeoPoint? _parseGeoPoint(dynamic data) {
+    if (data == null) return null;
+    if (data is GeoPoint) return data;
+    if (data is Map<String, dynamic>) {
+      // Mapから緯度経度を取得してGeoPointを作成
+      final latitude = data['latitude'] ?? data['lat'] ?? data['_latitude'];
+      final longitude = data['longitude'] ?? data['lng'] ?? data['_longitude'] ?? data['lon'];
+      if (latitude != null && longitude != null) {
+        final lat = latitude is num ? latitude.toDouble() : double.tryParse(latitude.toString());
+        final lng = longitude is num ? longitude.toDouble() : double.tryParse(longitude.toString());
+        
+        // 有効な座標の場合のみGeoPointを作成
+        if (lat != null && lng != null && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+          return GeoPoint(lat, lng);
+        }
+      }
+    }
+    return null;
+  }
+
   factory EventModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     return EventModel(
@@ -47,6 +71,8 @@ class EventModel {
       description: data['description'] ?? '',
       eventCategory: data['eventCategory'] ?? 'その他',
       location: data['location'] ?? '',
+      coordinates: _parseGeoPoint(data['coordinates']),
+      googleMapUrl: data['googleMapUrl'],
       eventTimeStart: (data['eventTimeStart'] as Timestamp).toDate(),
       eventTimeEnd: (data['eventTimeEnd'] as Timestamp).toDate(),
       eventProgress: data['eventProgress'] ?? 'scheduled',
@@ -76,6 +102,8 @@ class EventModel {
       'description': description,
       'eventCategory': eventCategory,
       'location': location,
+      if (coordinates != null) 'coordinates': coordinates,
+      if (googleMapUrl != null) 'googleMapUrl': googleMapUrl,
       'eventTimeStart': Timestamp.fromDate(eventTimeStart),
       'eventTimeEnd': Timestamp.fromDate(eventTimeEnd),
       'eventProgress': eventProgress,

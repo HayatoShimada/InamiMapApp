@@ -6,5 +6,6 @@
     "strict": false,
     "skipLibCheck": true,
     "noImplicitAny": false
-  }
+  },
+  "exclude": ["src/scripts/**/*"]
 }

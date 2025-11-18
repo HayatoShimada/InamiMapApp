@@ -126,6 +126,12 @@ export default function ShopForm() {
 
   // 現在のGoogleマップURLを監視
   const currentGoogleMapUrl = watch('googleMapUrl');
+  
+  // デバッグ: 座標値をリアルタイムで監視
+  const watchedLocation = watch('location');
+  useEffect(() => {
+    console.log('監視中の座標値が変更されました:', watchedLocation);
+  }, [watchedLocation]);
 
   // GoogleマップURLから座標を抽出する関数
   const extractCoordinatesFromUrl = async (url: string) => {
@@ -154,7 +160,9 @@ export default function ShopForm() {
           };
 
           if (data.success && data.coordinates) {
-            setValue('location' as any, { latitude: data.coordinates.latitude, longitude: data.coordinates.longitude });
+            // 数値ではなく文字列として設定（高精度を保つため）
+            setValue('location.latitude' as any, data.coordinates.latitude.toString());
+            setValue('location.longitude' as any, data.coordinates.longitude.toString());
             setError('');
             console.log('座標抽出成功（Cloud Function）:', data.coordinates);
             return;
@@ -168,49 +176,58 @@ export default function ShopForm() {
         }
       }
 
-      // 通常のURL処理（既存のロジック）
+      // 通常のURL処理（改善版）
       let lat: number | null = null;
       let lng: number | null = null;
 
-      // パターン1: @座標 形式
-      const coordinatePattern = /@(-?\d+\.\d+),(-?\d+\.\d+)/;
-      const coordinateMatch = url.match(coordinatePattern);
+      // まず、!3d...!4d... パターンを探す（最も正確な店舗座標、高精度対応）
+      const pinPattern = /!3d(-?\d+\.\d{1,20})!4d(-?\d+\.\d{1,20})/;
+      const pinMatch = url.match(pinPattern);
 
-      if (coordinateMatch) {
-        lat = parseFloat(coordinateMatch[1]);
-        lng = parseFloat(coordinateMatch[2]);
+      if (pinMatch) {
+        // !3d!4d形式が見つかった場合（店舗のピン位置）
+        lat = parseFloat(pinMatch[1]);
+        lng = parseFloat(pinMatch[2]);
+        console.log('ピンの正確な座標を検出:', { lat, lng });
       } else {
-        // パターン2: より広範囲の@パターン
-        const placePattern = /@(-?\d+\.\d+),(-?\d+\.\d+),/;
+        // !3d!4d形式が見つからない場合は、他のパターンを試す
+        
+        // パターン1: place座標パターン /place/.../@lat,lng（高精度対応）
+        const placePattern = /\/place\/[^\/]+\/@(-?\d+\.\d{1,20}),(-?\d+\.\d{1,20})/;
         const placeMatch = url.match(placePattern);
-
+        
         if (placeMatch) {
           lat = parseFloat(placeMatch[1]);
           lng = parseFloat(placeMatch[2]);
+          console.log('place座標を検出:', { lat, lng });
         } else {
-          // パターン3: ?q=座標 パターン
-          const queryPattern = /[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/;
+          // パターン2: クエリパラメータの座標 ?q=lat,lng（高精度対応）
+          const queryPattern = /[?&]q=(-?\d+\.\d{1,20})[,+](-?\d+\.\d{1,20})/;
           const queryMatch = url.match(queryPattern);
-
+          
           if (queryMatch) {
             lat = parseFloat(queryMatch[1]);
             lng = parseFloat(queryMatch[2]);
+            console.log('クエリ座標を検出:', { lat, lng });
           } else {
-            // パターン4: /place/ URLで座標がある場合
-            const placeCoordPattern = /place\/[^/]*\/@(-?\d+\.\d+),(-?\d+\.\d+)/;
-            const placeCoordMatch = url.match(placeCoordPattern);
+            // パターン3: @座標形式（カメラ位置なので精度は低い、高精度対応）
+            const cameraPattern = /@(-?\d+\.\d{1,20}),(-?\d+\.\d{1,20})/;
+            const cameraMatch = url.match(cameraPattern);
             
-            if (placeCoordMatch) {
-              lat = parseFloat(placeCoordMatch[1]);
-              lng = parseFloat(placeCoordMatch[2]);
+            if (cameraMatch) {
+              lat = parseFloat(cameraMatch[1]);
+              lng = parseFloat(cameraMatch[2]);
+              console.log('カメラ座標を検出（精度注意）:', { lat, lng });
+              setError('⚠️ URLから座標を取得しましたが、カメラ位置の可能性があります。より正確な座標を取得するには、下記の「正確な座標の取得方法」をご確認ください。');
             }
           }
         }
       }
 
       if (lat !== null && lng !== null) {
-        // 座標をフォームに設定
-        setValue('location' as any, { latitude: lat, longitude: lng });
+        // 座標をフォームに設定（文字列として）
+        setValue('location.latitude' as any, lat.toString());
+        setValue('location.longitude' as any, lng.toString());
         setError('');
         console.log('座標抽出成功:', { lat, lng });
       } else {
@@ -305,6 +322,43 @@ export default function ShopForm() {
     try {
       setError('');
       
+      // デバッグ: フォームデータ全体を確認
+      console.log('=== フォーム送信デバッグ ===');
+      console.log('フォームデータ全体:', data);
+      console.log('座標データ詳細:', {
+        latitude: data.location?.latitude,
+        longitude: data.location?.longitude,
+        type: typeof data.location?.latitude,
+        typeL: typeof data.location?.longitude
+      });
+      
+      // 文字列から数値に変換
+      const lat = typeof data.location?.latitude === 'string' ? parseFloat(data.location.latitude) : data.location?.latitude;
+      const lng = typeof data.location?.longitude === 'string' ? parseFloat(data.location.longitude) : data.location?.longitude;
+      console.log('変換後の座標値:', { lat, lng, latType: typeof lat, lngType: typeof lng });
+      
+      // 変換した値でlocationオブジェクトを作成
+      const locationData = (lat !== undefined && lng !== undefined && !isNaN(lat) && !isNaN(lng)) 
+        ? { latitude: lat, longitude: lng }
+        : null;
+      console.log('locationDataオブジェクト:', locationData);
+      
+      // toGeoPoint関数の結果を詳しく確認
+      const geoPoint = toGeoPoint(locationData);
+      console.log('toGeoPoint結果:', geoPoint);
+      
+      // デフォルト値との比較
+      const defaultCenter = getInamiCenter();
+      console.log('デフォルト座標:', defaultCenter);
+      
+      // 最終的な座標値
+      const finalGeoPoint = geoPoint || defaultCenter;
+      console.log('最終的なGeoPoint:', finalGeoPoint);
+      console.log('========================');
+      
+      // ペイロード作成前に再度確認
+      console.log('ペイロード作成前の finalGeoPoint:', finalGeoPoint);
+      
       const shopPayload = {
         ownerUserId: currentUser.uid,
         shopName: data.shopName,
@@ -312,7 +366,7 @@ export default function ShopForm() {
         maniacPoint: data.maniacPoint,
         address: data.address,
         shopCategory: data.shopCategory,
-        location: toGeoPoint(data.location) || getInamiCenter(),
+        location: finalGeoPoint,
         images: imageUrls,
         googleMapUrl: data.googleMapUrl,
         website: data.website,
@@ -337,11 +391,17 @@ export default function ShopForm() {
         ...((!isEditMode) && { approvalStatus: 'pending' as const }),
       };
 
+      // 保存前の最終確認
+      console.log('保存直前のshopPayload:', shopPayload);
+      console.log('保存直前のlocation:', shopPayload.location);
+      
       if (isEditMode && id) {
         // 更新
+        console.log('更新処理を実行:', id);
         await updateDocument(id, shopPayload);
       } else {
         // 新規作成
+        console.log('新規作成処理を実行');
         await addDocument(shopPayload);
       }
 
@@ -523,16 +583,29 @@ export default function ShopForm() {
                   <Controller
                     name="location.latitude"
                     control={control}
+                    rules={{
+                      validate: (value) => {
+                        if (!value && value !== 0) return '緯度は必須です';
+                        const num = typeof value === 'string' ? parseFloat(value) : value;
+                        if (isNaN(num)) return '有効な数値を入力してください';
+                        if (num < -90 || num > 90) return '緯度は-90から90の範囲で入力してください';
+                        return true;
+                      }
+                    }}
                     render={({ field }) => (
                       <TextField
                         {...field}
                         label="緯度"
-                        type="number"
                         fullWidth
-                        InputProps={{ readOnly: true }}
-                        inputProps={{ step: 0.000001 }}
-                        helperText="Googleマップリンクから自動取得されます"
-                        sx={{ backgroundColor: 'grey.50' }}
+                        error={!!errors.location?.latitude}
+                        helperText={errors.location?.latitude?.message || "Googleマップリンクから自動取得、または直接入力できます"}
+                        value={field.value || ''}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          // 文字列のまま保存し、送信時に数値に変換
+                          console.log('緯度入力変更 (文字列):', { value, length: value.length });
+                          field.onChange(value);
+                        }}
                       />
                     )}
                   />
@@ -542,16 +615,29 @@ export default function ShopForm() {
                   <Controller
                     name="location.longitude"
                     control={control}
+                    rules={{
+                      validate: (value) => {
+                        if (!value && value !== 0) return '経度は必須です';
+                        const num = typeof value === 'string' ? parseFloat(value) : value;
+                        if (isNaN(num)) return '有効な数値を入力してください';
+                        if (num < -180 || num > 180) return '経度は-180から180の範囲で入力してください';
+                        return true;
+                      }
+                    }}
                     render={({ field }) => (
                       <TextField
                         {...field}
                         label="経度"
-                        type="number"
                         fullWidth
-                        InputProps={{ readOnly: true }}
-                        inputProps={{ step: 0.000001 }}
-                        helperText="Googleマップリンクから自動取得されます"
-                        sx={{ backgroundColor: 'grey.50' }}
+                        error={!!errors.location?.longitude}
+                        helperText={errors.location?.longitude?.message || "Googleマップリンクから自動取得、または直接入力できます"}
+                        value={field.value || ''}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          // 文字列のまま保存し、送信時に数値に変換
+                          console.log('経度入力変更 (文字列):', { value, length: value.length });
+                          field.onChange(value);
+                        }}
                       />
                     )}
                   />
@@ -572,16 +658,34 @@ export default function ShopForm() {
                     render={({ field }) => (
                       <TextField
                         {...field}
-                        label="Googleマップリンク"
+                        label="Googleマップリンク または 座標"
                         fullWidth
-                        placeholder="https://maps.google.com/..."
-                        helperText="Googleマップで店舗を検索し、「共有」からリンクをコピーして貼り付けてください"
+                        placeholder="https://maps.google.com/... または 35.681234, 139.767123"
+                        helperText="GoogleマップのURL、または「緯度, 経度」の形式で直接入力できます"
                         InputProps={{
                           startAdornment: (
                             <InputAdornment position="start">
                               <Language color="action" />
                             </InputAdornment>
                           ),
+                        }}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          const value = e.target.value;
+                          // 座標の直接入力を検出（例: 35.681234, 139.767123）高精度対応
+                          const coordPattern = /^\s*(-?\d+\.\d{1,20})\s*,\s*(-?\d+\.\d{1,20})\s*$/;
+                          const coordMatch = value.match(coordPattern);
+                          if (coordMatch) {
+                            const lat = coordMatch[1];
+                            const lng = coordMatch[2];
+                            // 文字列として設定
+                            setValue('location.latitude' as any, lat);
+                            setValue('location.longitude' as any, lng);
+                            setError('');
+                            console.log('座標を直接入力:', { lat, lng });
+                            // フォームの現在の値を確認
+                            console.log('現在のフォーム座標値:', watch('location'));
+                          }
                         }}
                       />
                     )}
@@ -595,7 +699,7 @@ export default function ShopForm() {
                         startIcon={extractingCoords ? <CircularProgress size={20} /> : <LocationOn />}
                         size="small"
                       >
-                        {extractingCoords ? '座標を抽出中...' : '座標を自動取得'}
+                        {extractingCoords ? '座標を抽出中...' : 'URLから座標を自動取得'}
                       </Button>
                     </Box>
                   )}
@@ -603,22 +707,53 @@ export default function ShopForm() {
                   {/* GoogleマップURL使用方法チュートリアル */}
                   <Box sx={{ mt: 2, p: 2, bgcolor: 'info.light', borderRadius: 1 }}>
                     <Typography variant="h6" gutterBottom color="info.dark">
-                      GoogleマップURLの取得方法
+                      正確な座標の取得方法
                     </Typography>
-                    <Typography variant="body2" paragraph>
-                      <strong>手順:</strong>
+                    
+                    <Box sx={{ mt: 2, mb: 2, p: 2, bgcolor: 'warning.light', borderRadius: 1 }}>
+                      <Typography variant="subtitle1" gutterBottom color="warning.dark">
+                        ⚠️ 重要：正確な座標を取得するコツ
+                      </Typography>
+                      <Typography variant="body2" component="div" color="text.secondary">
+                        GoogleマップのURLには「カメラ位置」と「ピン位置」の2つの座標が含まれることがあります。<br />
+                        店舗の正確な位置を取得するには、以下の方法をお勧めします。
+                      </Typography>
+                    </Box>
+
+                    <Typography variant="subtitle1" gutterBottom>
+                      <strong>方法1：PCで右クリック（最も確実）</strong>
+                    </Typography>
+                    <Typography variant="body2" component="div" sx={{ mb: 2 }}>
+                      1. GoogleマップでURLを開きます<br />
+                      2. <strong>赤いピンの先端を正確に右クリック</strong>します<br />
+                      3. メニュー最上部の座標（例：35.681234, 139.767123）をクリック<br />
+                      4. 座標がコピーされるので、下の緯度・経度欄に貼り付けます
+                    </Typography>
+
+                    <Typography variant="subtitle1" gutterBottom>
+                      <strong>方法2：スマートフォンでロングタップ</strong>
+                    </Typography>
+                    <Typography variant="body2" component="div" sx={{ mb: 2 }}>
+                      1. GoogleマップアプリでURLを開きます<br />
+                      2. 地図を拡大し、<strong>赤いピンを長押し（ロングタップ）</strong>します<br />
+                      3. 画面上部に表示される座標をタップしてコピー<br />
+                      4. 座標を下の緯度・経度欄に貼り付けます
+                    </Typography>
+
+                    <Typography variant="subtitle1" gutterBottom>
+                      <strong>方法3：URLから自動取得</strong>
                     </Typography>
                     <Typography variant="body2" component="div">
                       1. <a href="https://maps.google.com" target="_blank" rel="noopener noreferrer">Google Maps</a>を開きます<br />
-                      2. 店舗の住所を検索して場所を特定します<br />
-                      3. 店舗のマーカーをクリックして詳細を表示<br />
-                      4. 「共有」ボタンをクリック<br />
-                      5. 「リンクをコピー」を選択<br />
-                      6. コピーしたURLを上記のフィールドに貼り付けます<br />
-                      7. 「座標を自動取得」ボタンを押して緯度・経度を設定
+                      2. 店舗を検索して「共有」→「リンクをコピー」<br />
+                      3. URLを上記フィールドに貼り付け<br />
+                      4. 「座標を自動取得」ボタンをクリック<br />
+                      <small>※ URLによってはカメラ位置が取得される場合があります</small>
                     </Typography>
-                    <Typography variant="body2" sx={{ mt: 1, fontStyle: 'italic' }}>
-                      ※ 正確な座標を設定することで、アプリの地図上に店舗が正しく表示されます
+
+                    <Typography variant="body2" sx={{ mt: 2, fontStyle: 'italic' }}>
+                      💡 ヒント：座標は「緯度, 経度」の形式で直接入力することもできます。<br />
+                      例：35.681234, 139.767123 のように入力してください。
                     </Typography>
                   </Box>
                 </Grid>

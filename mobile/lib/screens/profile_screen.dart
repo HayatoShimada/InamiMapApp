@@ -175,6 +175,33 @@ class ProfileScreen extends StatelessWidget {
                       const Divider(),
                       
                       ListTile(
+                        leading: const Icon(Icons.privacy_tip_outlined, color: Colors.grey),
+                        title: const Text('プライバシーポリシー'),
+                        subtitle: const Text('個人情報の取り扱いについて'),
+                        onTap: () => _showPrivacyPolicy(context),
+                      ),
+                      
+                      const Divider(),
+                      
+                      ListTile(
+                        leading: const Icon(Icons.description_outlined, color: Colors.grey),
+                        title: const Text('利用規約'),
+                        subtitle: const Text('アプリの利用規約を確認'),
+                        onTap: () => _showTermsOfService(context),
+                      ),
+                      
+                      const Divider(),
+                      
+                      ListTile(
+                        leading: const Icon(Icons.contact_support_outlined, color: Colors.grey),
+                        title: const Text('お問い合わせ'),
+                        subtitle: const Text('85-Store'),
+                        onTap: () => _showContact(context),
+                      ),
+                      
+                      const Divider(),
+                      
+                      ListTile(
                         leading: const Icon(Icons.logout, color: Colors.orange),
                         title: const Text('ログアウト'),
                         subtitle: const Text('アプリからログアウトします'),
@@ -355,6 +382,212 @@ class ProfileScreen extends StatelessWidget {
               '削除',
               style: TextStyle(color: Colors.red),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showPrivacyPolicy(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('プライバシーポリシー'),
+        content: const SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '1. 個人情報の収集',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 8),
+              Text('本アプリでは、以下の情報を収集します：'),
+              Text('・Googleアカウント情報（名前、メールアドレス、プロフィール画像）'),
+              Text('・位置情報（お客様の同意がある場合のみ）'),
+              Text('・お気に入り登録情報'),
+              SizedBox(height: 16),
+              
+              Text(
+                '2. 情報の利用目的',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 8),
+              Text('収集した情報は以下の目的で利用します：'),
+              Text('・アプリの機能提供'),
+              Text('・ユーザー体験の向上'),
+              Text('・統計情報の作成（個人を特定しない形で）'),
+              SizedBox(height: 16),
+              
+              Text(
+                '3. 情報の第三者提供',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 8),
+              Text('お客様の個人情報は、法令に基づく場合を除き、第三者に提供することはありません。'),
+              SizedBox(height: 16),
+              
+              Text(
+                '4. データの保存期間',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 8),
+              Text('アカウントを削除するまで保存されます。アカウント削除時にすべてのデータが削除されます。'),
+              SizedBox(height: 16),
+              
+              Text(
+                '5. お問い合わせ',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 8),
+              Text('個人情報の取り扱いに関するお問い合わせ：'),
+              Text('85-Store'),
+              Text('Email: info@85-store.com'),
+              Text('電話: 0763-82-5850'),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('閉じる'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showTermsOfService(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('利用規約'),
+        content: const SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '第1条（利用規約の適用）',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 8),
+              Text('本規約は、井波マップアプリ（以下「本アプリ」）の利用に関する条件を定めるものです。'),
+              SizedBox(height: 16),
+              
+              Text(
+                '第2条（利用条件）',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 8),
+              Text('本アプリを利用するには、Googleアカウントでのログインが必要です。'),
+              SizedBox(height: 16),
+              
+              Text(
+                '第3条（禁止事項）',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 8),
+              Text('以下の行為を禁止します：'),
+              Text('・虚偽の情報を登録する行為'),
+              Text('・他のユーザーに迷惑をかける行為'),
+              Text('・本アプリの運営を妨げる行為'),
+              Text('・法令に違反する行為'),
+              SizedBox(height: 16),
+              
+              Text(
+                '第4条（免責事項）',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 8),
+              Text('本アプリの利用により生じた損害について、運営者は一切の責任を負いません。'),
+              SizedBox(height: 16),
+              
+              Text(
+                '第5条（サービスの変更・終了）',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 8),
+              Text('運営者は、事前の通知なく本アプリの内容を変更または終了することができます。'),
+              SizedBox(height: 16),
+              
+              Text(
+                '第6条（規約の変更）',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 8),
+              Text('本規約は予告なく変更される場合があります。変更後の規約は、本アプリ内で公開された時点から効力を生じます。'),
+              SizedBox(height: 16),
+              
+              Text('制定日: 2024年11月1日'),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('閉じる'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showContact(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('お問い合わせ'),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '運営: 85-Store',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 16),
+            
+            Row(
+              children: [
+                Icon(Icons.location_on, size: 20, color: Colors.grey),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text('〒932-0231\n富山県南砺市井波3110-1'),
+                ),
+              ],
+            ),
+            SizedBox(height: 12),
+            
+            Row(
+              children: [
+                Icon(Icons.phone, size: 20, color: Colors.grey),
+                SizedBox(width: 8),
+                Text('0763-82-5850'),
+              ],
+            ),
+            SizedBox(height: 12),
+            
+            Row(
+              children: [
+                Icon(Icons.email, size: 20, color: Colors.grey),
+                SizedBox(width: 8),
+                Text('info@85-store.com'),
+              ],
+            ),
+            SizedBox(height: 16),
+            
+            Text(
+              'アプリに関するご意見・ご要望、不具合のご報告などお気軽にお問い合わせください。',
+              style: TextStyle(fontSize: 14, color: Colors.grey),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('閉じる'),
           ),
         ],
       ),

@@ -75,5 +75,17 @@ service cloud.firestore {
       allow write: if request.auth != null && 
                    get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
+    
+    // お気に入りコレクション（デバイス毎に保存）
+    match /favorites/{favoriteId} {
+      // 全員が読み書き可能（匿名利用のため）
+      allow read, write: if true;
+    }
+    
+    // 訪問履歴コレクション（デバイス毎に保存）
+    match /visitHistory/{historyId} {
+      // 全員が読み書き可能（匿名利用のため）
+      allow read, write: if true;
+    }
   }
 }

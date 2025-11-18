@@ -35,12 +35,18 @@ class FavoriteProvider with ChangeNotifier {
     // お気に入り店舗一覧の監視
     _favoriteService.getFavoriteShops().listen((shops) {
       _favoriteShops = shops;
+      // 店舗リストが更新されたら統計も更新
+      _loadStats();
       notifyListeners();
+    }, onError: (error) {
+      print('FavoriteProvider: 店舗取得エラー = $error');
     });
 
     // お気に入りイベント一覧の監視
     _favoriteService.getFavoriteEvents().listen((events) {
       _favoriteEvents = events;
+      // イベントリストが更新されたら統計も更新
+      _loadStats();
       notifyListeners();
     });
 

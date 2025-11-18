@@ -98,7 +98,7 @@ class FavoriteService {
     return _firestore
         .collection('favorites')
         .where('userId', isEqualTo: user.uid)
-        .orderBy('createdAt', descending: true)
+        // .orderBy('createdAt', descending: true) // 一時的にコメントアウト
         .snapshots()
         .map((snapshot) => snapshot.docs
             .map((doc) => FavoriteModel.fromFirestore(doc))
@@ -114,7 +114,7 @@ class FavoriteService {
         .collection('favorites')
         .where('userId', isEqualTo: user.uid)
         .where('itemType', isEqualTo: 'shop')
-        .orderBy('createdAt', descending: true)
+        // .orderBy('createdAt', descending: true) // 一時的にコメントアウト
         .snapshots()
         .asyncMap((snapshot) async {
       final shopIds = snapshot.docs
@@ -152,7 +152,7 @@ class FavoriteService {
         .collection('favorites')
         .where('userId', isEqualTo: user.uid)
         .where('itemType', isEqualTo: 'event')
-        .orderBy('createdAt', descending: true)
+        // .orderBy('createdAt', descending: true) // 一時的にコメントウト
         .snapshots()
         .asyncMap((snapshot) async {
       final eventIds = snapshot.docs

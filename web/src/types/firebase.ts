@@ -69,6 +69,8 @@ export interface FirestoreEvent {
   eventTimeStart: Timestamp;
   eventTimeEnd: Timestamp;
   location: string;
+  coordinates?: GeoPoint;
+  googleMapUrl?: string;
   participatingShops: string[];
   images: string[]; // 最大5枚
   detailUrl?: string; // イベント詳細URL
@@ -105,6 +107,11 @@ export interface EventFormData {
   eventTimeStart: Date;
   eventTimeEnd: Date;
   location: string;
+  coordinates: {
+    latitude: number;
+    longitude: number;
+  };
+  googleMapUrl?: string;
   shopId?: string;
   participatingShops: string[];
   images: File[];

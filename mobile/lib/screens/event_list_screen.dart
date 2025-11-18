@@ -3,6 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../models/event_model.dart';
 import '../widgets/favorite_button.dart';
+import '../widgets/event_detail_sheet.dart';
+import 'home_screen.dart';
 
 class EventListScreen extends StatefulWidget {
   const EventListScreen({super.key});
@@ -328,192 +330,18 @@ class EventCard extends StatelessWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => EventDetailSheet(event: event),
+      builder: (context) => EventDetailSheet(
+        event: event,
+        onShowMap: () {
+          // 現在の画面を閉じる
+          Navigator.pop(context);
+          
+          // 地図タブに切り替えてイベントにフォーカス
+          if (context.mounted) {
+            HomeScreen.switchToTab(context, 2, focusEvent: event);
+          }
+        },
+      ),
     );
-  }
-}
-
-class EventDetailSheet extends StatelessWidget {
-  final EventModel event;
-
-  const EventDetailSheet({
-    super.key,
-    required this.event,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return DraggableScrollableSheet(
-      initialChildSize: 0.9,
-      minChildSize: 0.5,
-      maxChildSize: 0.9,
-      builder: (context, scrollController) {
-        return Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          child: Column(
-            children: [
-              // ハンドル
-              Container(
-                margin: const EdgeInsets.only(top: 8),
-                height: 4,
-                width: 40,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              
-              Expanded(
-                child: ListView(
-                  controller: scrollController,
-                  padding: const EdgeInsets.all(20),
-                  children: [
-                    // イベント名とお気に入りボタン
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            event.eventName,
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        FavoriteButton(
-                          itemType: 'event',
-                          itemId: event.id,
-                          size: 32,
-                        ),
-                      ],
-                    ),
-                    
-                    const SizedBox(height: 16),
-                    
-                    // イベント画像
-                    if (event.images.isNotEmpty) ...[
-                      SizedBox(
-                        height: 200,
-                        child: ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: event.images.length,
-                          itemBuilder: (context, index) {
-                            return Container(
-                              margin: const EdgeInsets.only(right: 8),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: CachedNetworkImage(
-                                  imageUrl: event.images[index],
-                                  width: 160,
-                                  fit: BoxFit.cover,
-                                  placeholder: (context, url) => Container(
-                                    width: 160,
-                                    color: Colors.grey.shade200,
-                                    child: const Center(
-                                      child: CircularProgressIndicator(),
-                                    ),
-                                  ),
-                                  errorWidget: (context, url, error) => Container(
-                                    width: 160,
-                                    color: Colors.grey.shade200,
-                                    child: const Icon(Icons.error),
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                    ],
-                    
-                    // 説明
-                    const Text(
-                      'イベント説明',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      event.description,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        height: 1.5,
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 16),
-                    
-                    // 開催日時
-                    const Text(
-                      '開催日時',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const Icon(Icons.schedule, color: Colors.blue),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '開始: ${_formatFullDateTime(event.eventTimeStart)}',
-                                style: const TextStyle(fontSize: 16),
-                              ),
-                              Text(
-                                '終了: ${_formatFullDateTime(event.eventTimeEnd)}',
-                                style: const TextStyle(fontSize: 16),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    
-                    const SizedBox(height: 16),
-                    
-                    // 開催場所
-                    const Text(
-                      '開催場所',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const Icon(Icons.location_on, color: Colors.red),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            event.location,
-                            style: const TextStyle(fontSize: 16),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  String _formatFullDateTime(DateTime dateTime) {
-    return '${dateTime.year}年${dateTime.month}月${dateTime.day}日 ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
   }
 }

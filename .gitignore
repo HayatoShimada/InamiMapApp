@@ -79,3 +79,16 @@ coverage/
 # Temporary files
 *.tmp
 *.temp
+
+# Firebase configuration files
+mobile/lib/firebase_options.dart
+mobile/android/app/google-services.json
+mobile/ios/Runner/GoogleService-Info.plist
+mobile/macos/Runner/GoogleService-Info.plist
+
+# API Keys and sensitive files
+*.json
+*.plist
+**/google-services.json
+**/GoogleService-Info.plist
+**/firebase_options.dart

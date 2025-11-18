@@ -180,10 +180,13 @@ class ShopModel {
       final latitude = data['latitude'] ?? data['lat'] ?? data['_latitude'];
       final longitude = data['longitude'] ?? data['lng'] ?? data['_longitude'] ?? data['lon'];
       if (latitude != null && longitude != null) {
-        return GeoPoint(
-          latitude is num ? latitude.toDouble() : double.tryParse(latitude.toString()) ?? 0,
-          longitude is num ? longitude.toDouble() : double.tryParse(longitude.toString()) ?? 0,
-        );
+        final lat = latitude is num ? latitude.toDouble() : double.tryParse(latitude.toString());
+        final lng = longitude is num ? longitude.toDouble() : double.tryParse(longitude.toString());
+        
+        // 有効な座標の場合のみGeoPointを作成
+        if (lat != null && lng != null && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+          return GeoPoint(lat, lng);
+        }
       }
     }
     return null;
@@ -194,6 +197,14 @@ class ShopModel {
     if (data == null) {
       throw Exception('Document data is null');
     }
+    
+    // デバッグ: 座標データを確認
+    print('Shop ${doc.id} - location data: ${data['location']}');
+    final location = _parseGeoPoint(data['location']);
+    if (location != null) {
+      print('Shop ${doc.id} - parsed location: lat=${location.latitude}, lng=${location.longitude}');
+    }
+    
     return ShopModel(
       id: doc.id,
       shopName: data['shopName'] ?? '',
@@ -201,7 +212,7 @@ class ShopModel {
       maniacPoint: data['maniacPoint'] ?? '',
       shopCategory: data['shopCategory'] ?? '',
       address: data['address'] ?? '',
-      location: _parseGeoPoint(data['location']),
+      location: location,
       googleMapUrl: data['googleMapUrl'],
       website: data['website'],
       onlineStore: data['onlineStore'],

@@ -74,6 +74,8 @@ class _FavoriteButtonState extends State<FavoriteButton>
       _isLoading = true;
     });
 
+    print('お気に入りボタン押下: type=${widget.itemType}, id=${widget.itemId}, 現在の状態=$_isFavorite');
+
     final favoriteProvider = context.read<FavoriteProvider>();
     bool success;
 
@@ -82,6 +84,8 @@ class _FavoriteButtonState extends State<FavoriteButton>
     } else {
       success = await favoriteProvider.toggleEventFavorite(widget.itemId);
     }
+
+    print('お気に入り切り替え結果: success=$success');
 
     if (success) {
       setState(() {
@@ -96,8 +100,10 @@ class _FavoriteButtonState extends State<FavoriteButton>
       // フィードバック
       if (_isFavorite) {
         _showFeedback('お気に入りに追加しました');
+        print('お気に入りに追加完了');
       } else {
         _showFeedback('お気に入りから削除しました');
+        print('お気に入りから削除完了');
       }
     } else {
       _showFeedback('操作に失敗しました');

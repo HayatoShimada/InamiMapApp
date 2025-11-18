@@ -5,7 +5,10 @@ import '../providers/auth_provider.dart';
 import '../models/shop_model.dart';
 import '../models/event_model.dart';
 import '../widgets/favorite_button.dart';
+import '../widgets/shop_detail_sheet.dart';
+import '../widgets/event_detail_sheet.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'home_screen.dart';
 
 class FavoriteScreen extends StatefulWidget {
   const FavoriteScreen({super.key});
@@ -241,7 +244,18 @@ class FavoriteShopCard extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
         onTap: () {
-          // TODO: 店舗詳細表示
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            builder: (context) => ShopDetailSheet(
+              shop: shop,
+              onShowMap: () {
+                Navigator.pop(context);
+                HomeScreen.switchToTab(context, 2, focusShop: shop);
+              },
+            ),
+          );
         },
         child: Padding(
           padding: const EdgeInsets.all(12),
@@ -346,7 +360,23 @@ class FavoriteEventCard extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
         onTap: () {
-          // TODO: イベント詳細表示
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            builder: (context) => EventDetailSheet(
+              event: event,
+              onShowMap: () {
+                // 現在の画面を閉じる
+                Navigator.pop(context);
+                
+                // 地図タブに切り替えてイベントにフォーカス
+                if (context.mounted) {
+                  HomeScreen.switchToTab(context, 2, focusEvent: event);
+                }
+              },
+            ),
+          );
         },
         child: Padding(
           padding: const EdgeInsets.all(12),

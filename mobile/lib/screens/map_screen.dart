@@ -5,9 +5,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/shop_model.dart';
 import '../models/event_model.dart';
 import '../widgets/favorite_button.dart';
+import '../widgets/shop_detail_sheet.dart';
+import '../widgets/event_detail_sheet.dart';
 
 class MapScreen extends StatefulWidget {
-  const MapScreen({super.key});
+  final ShopModel? focusShop;
+  final EventModel? focusEvent;
+  
+  const MapScreen({super.key, this.focusShop, this.focusEvent});
 
   @override
   State<MapScreen> createState() => _MapScreenState();
@@ -28,6 +33,27 @@ class _MapScreenState extends State<MapScreen> {
   void initState() {
     super.initState();
     _loadMapData();
+  }
+
+  @override
+  void didUpdateWidget(MapScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.focusShop != null && widget.focusShop != oldWidget.focusShop) {
+      print('MapScreen didUpdateWidget: focusShop changed to ${widget.focusShop!.shopName}');
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && !_isLoading) {
+          _centerOnShop(widget.focusShop!);
+        }
+      });
+    }
+    if (widget.focusEvent != null && widget.focusEvent != oldWidget.focusEvent) {
+      print('MapScreen didUpdateWidget: focusEvent changed to ${widget.focusEvent!.eventName}');
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && !_isLoading) {
+          _centerOnEvent(widget.focusEvent!);
+        }
+      });
+    }
   }
 
   Future<void> _loadMapData() async {
@@ -57,6 +83,19 @@ class _MapScreenState extends State<MapScreen> {
             .toList();
         _isLoading = false;
       });
+
+      // If there's a focus shop or event, center on it after data loads
+      if (widget.focusShop != null && mounted) {
+        print('MapScreen: Centering on shop after data load');
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _centerOnShop(widget.focusShop!);
+        });
+      } else if (widget.focusEvent != null && mounted) {
+        print('MapScreen: Centering on event after data load');
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _centerOnEvent(widget.focusEvent!);
+        });
+      }
     } catch (e) {
       print('Error loading map data: $e');
       print('Error type: ${e.runtimeType}');
@@ -143,12 +182,18 @@ class _MapScreenState extends State<MapScreen> {
                       initialCenter: _inamiCenter,
                       initialZoom: 13.0,
                       minZoom: 10.0,
-                      maxZoom: 18.0,
+                      maxZoom: 19.0, // 最大ズームレベルを上げる
                     ),
                     children: [
                       TileLayer(
-                        urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                        urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                        subdomains: const ['a', 'b', 'c'], // サブドメインを使用して並列読み込み
                         userAgentPackageName: 'com.inamimapapp.inami_map_app',
+                        maxZoom: 19,
+                        retinaMode: true, // Retinaディスプレイ対応
+                        keepBuffer: 8, // タイルバッファを増やす
+                        tileSize: 256,
+                        minZoom: 10,
                       ),
                       MarkerLayer(
                         markers: _buildMarkers(),
@@ -194,8 +239,29 @@ class _MapScreenState extends State<MapScreen> {
     // イベントマーカー
     if (_selectedFilter == 'すべて' || _selectedFilter == 'イベントのみ') {
       for (final event in _events) {
-        // イベントの場所が参加店舗に基づく場合
-        if (event.participatingShops != null && event.participatingShops!.isNotEmpty) {
+        // イベント自体に座標がある場合はそれを優先
+        if (event.coordinates != null) {
+          markers.add(
+            Marker(
+              point: LatLng(
+                event.coordinates!.latitude,
+                event.coordinates!.longitude,
+              ),
+              width: 40,
+              height: 40,
+              child: GestureDetector(
+                onTap: () => _showEventDetails(event),
+                child: const Icon(
+                  Icons.event,
+                  color: Colors.green,
+                  size: 40,
+                ),
+              ),
+            ),
+          );
+        } 
+        // イベントに座標がない場合、参加店舗の座標を使用
+        else if (event.participatingShops != null && event.participatingShops!.isNotEmpty) {
           final participatingShop = _shops.firstWhere(
             (shop) => event.participatingShops!.contains(shop.id),
             orElse: () => _shops.first,
@@ -311,30 +377,95 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   void _centerOnShop(ShopModel shop) {
+    print('_centerOnShop called: ${shop.shopName}');
     if (shop.location != null) {
-      _mapController.move(
-        LatLng(shop.location!.latitude, shop.location!.longitude),
-        17.0,
-      );
+      print('Shop location: lat=${shop.location!.latitude}, lng=${shop.location!.longitude}');
+      
+      // 即座に低いズームレベルで移動してから、高いズームレベルに移動
+      if (mounted) {
+        // まず低いズームレベルで中心を移動
+        _mapController.move(
+          LatLng(shop.location!.latitude, shop.location!.longitude),
+          15.0,
+        );
+        
+        // 少し待ってから高いズームレベルに移動
+        Future.delayed(const Duration(milliseconds: 100), () {
+          if (mounted) {
+            _mapController.move(
+              LatLng(shop.location!.latitude, shop.location!.longitude),
+              18.0,
+            );
+            
+            // 強制的に再描画
+            setState(() {});
+          }
+        });
+      }
+    } else {
+      print('Shop location is null');
     }
   }
 
   void _centerOnEvent(EventModel event) {
-    if (event.participatingShops != null && event.participatingShops!.isNotEmpty) {
+    print('_centerOnEvent called: ${event.eventName}');
+    // イベント自体に座標がある場合はそれを優先
+    if (event.coordinates != null) {
+      print('Event has coordinates: lat=${event.coordinates!.latitude}, lng=${event.coordinates!.longitude}');
+      if (mounted) {
+        // まず低いズームレベルで中心を移動
+        _mapController.move(
+          LatLng(event.coordinates!.latitude, event.coordinates!.longitude),
+          15.0,
+        );
+        
+        // 少し待ってから高いズームレベルに移動
+        Future.delayed(const Duration(milliseconds: 100), () {
+          if (mounted) {
+            _mapController.move(
+              LatLng(event.coordinates!.latitude, event.coordinates!.longitude),
+              18.0,
+            );
+            
+            // 強制的に再描画
+            setState(() {});
+          }
+        });
+      }
+    }
+    // イベントに座標がない場合、参加店舗の座標を使用
+    else if (event.participatingShops != null && event.participatingShops!.isNotEmpty) {
+      print('Event has participatingShops: ${event.participatingShops}');
       final participatingShop = _shops.firstWhere(
         (shop) => event.participatingShops!.contains(shop.id),
         orElse: () => _shops.first,
       );
       
       if (participatingShop.location != null) {
-        _mapController.move(
-          LatLng(
-            participatingShop.location!.latitude,
-            participatingShop.location!.longitude,
-          ),
-          17.0,
-        );
+        print('Using participating shop location: lat=${participatingShop.location!.latitude}, lng=${participatingShop.location!.longitude}');
+        if (mounted) {
+          // まず低いズームレベルで中心を移動
+          _mapController.move(
+            LatLng(participatingShop.location!.latitude, participatingShop.location!.longitude),
+            15.0,
+          );
+          
+          // 少し待ってから高いズームレベルに移動
+          Future.delayed(const Duration(milliseconds: 100), () {
+            if (mounted) {
+              _mapController.move(
+                LatLng(participatingShop.location!.latitude, participatingShop.location!.longitude),
+                18.0,
+              );
+              
+              // 強制的に再描画
+              setState(() {});
+            }
+          });
+        }
       }
+    } else {
+      print('Event has no location information');
     }
   }
 
@@ -343,7 +474,13 @@ class _MapScreenState extends State<MapScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => _buildShopDetailSheet(shop),
+      builder: (context) => ShopDetailSheet(
+        shop: shop,
+        onShowMap: () {
+          Navigator.pop(context);
+          _centerOnShop(shop);
+        },
+      ),
     );
   }
 
@@ -352,202 +489,13 @@ class _MapScreenState extends State<MapScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => _buildEventDetailSheet(event),
+      builder: (context) => EventDetailSheet(
+        event: event,
+        onShowMap: () {
+          Navigator.pop(context);
+          _centerOnEvent(event);
+        },
+      ),
     );
-  }
-
-  Widget _buildShopDetailSheet(ShopModel shop) {
-    return DraggableScrollableSheet(
-      initialChildSize: 0.6,
-      maxChildSize: 0.9,
-      minChildSize: 0.3,
-      builder: (context, scrollController) {
-        return Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          child: Column(
-            children: [
-              Container(
-                margin: const EdgeInsets.only(top: 8),
-                height: 4,
-                width: 40,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.store, color: Colors.blue, size: 32),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              shop.shopName,
-                              style: const TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                          FavoriteButton(
-                            itemType: 'shop',
-                            itemId: shop.id,
-                            size: 32,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        shop.description,
-                        style: const TextStyle(fontSize: 16),
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          const Icon(Icons.location_on, color: Colors.red),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              shop.address,
-                              style: const TextStyle(fontSize: 16),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            Navigator.pop(context);
-                            _centerOnShop(shop);
-                          },
-                          icon: const Icon(Icons.center_focus_strong),
-                          label: const Text('地図で表示'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildEventDetailSheet(EventModel event) {
-    return DraggableScrollableSheet(
-      initialChildSize: 0.6,
-      maxChildSize: 0.9,
-      minChildSize: 0.3,
-      builder: (context, scrollController) {
-        return Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          child: Column(
-            children: [
-              Container(
-                margin: const EdgeInsets.only(top: 8),
-                height: 4,
-                width: 40,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.event, color: Colors.green, size: 32),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              event.eventName,
-                              style: const TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                          FavoriteButton(
-                            itemType: 'event',
-                            itemId: event.id,
-                            size: 32,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        event.description,
-                        style: const TextStyle(fontSize: 16),
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          const Icon(Icons.schedule, color: Colors.blue),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              '${_formatDateTime(event.eventTimeStart)} - ${_formatDateTime(event.eventTimeEnd)}',
-                              style: const TextStyle(fontSize: 16),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          const Icon(Icons.location_on, color: Colors.red),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              event.location,
-                              style: const TextStyle(fontSize: 16),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            Navigator.pop(context);
-                            _centerOnEvent(event);
-                          },
-                          icon: const Icon(Icons.center_focus_strong),
-                          label: const Text('地図で表示'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  String _formatDateTime(DateTime dateTime) {
-    return '${dateTime.month}/${dateTime.day} ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
   }
 }
