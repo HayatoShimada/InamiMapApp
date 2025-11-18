@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "504190906046",
+    "project_id": "inami-map-app-prod",
+    "storage_bucket": "inami-map-app-prod.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:504190906046:android:db6b7fed1c88bd3625b8ef",
+        "android_client_info": {
+          "package_name": "com.inamimapapp.inami_map_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "504190906046-mjrgipnticamp838f8e8dahinj4uontc.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCg-kJVydFaGTfzeb81xtxTCci0IE8EPlM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "504190906046-mjrgipnticamp838f8e8dahinj4uontc.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
