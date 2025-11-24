@@ -540,7 +540,7 @@ class ProfileScreen extends StatelessWidget {
               Text('本規約の解釈にあたっては、日本法を準拠法とします。本アプリに関して紛争が生じた場合には、運営者の所在地を管轄する裁判所を専属的合意管轄とします。'),
               SizedBox(height: 16),
               
-              Text('制定日: 2024年11月18日'),
+              Text('制定日: 2025年11月18日'),
               Text('運営者: 85-Store'),
               Text('連絡先: info@85-store.com'),
             ],

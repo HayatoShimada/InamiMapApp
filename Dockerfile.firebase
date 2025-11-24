@@ -1,0 +1,32 @@
+# Firebase Emulator Suite Docker Image
+FROM node:20-slim
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    openjdk-17-jre-headless \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Firebase CLI
+RUN npm install -g firebase-tools
+
+# Create app directory
+WORKDIR /app
+
+# Create seed directory
+RUN mkdir -p /app/seed /app/data
+
+# Copy package files for functions (will be overridden by volume, but needed for initial setup)
+COPY functions/package*.json /app/functions/
+
+# Install functions dependencies (will be overridden if volume is mounted, but helps with initial setup)
+WORKDIR /app/functions
+RUN npm install --production=false || true
+
+WORKDIR /app
+
+# Expose emulator ports
+EXPOSE 4000 8080 9099 9199 5001
+
+# Default command
+CMD ["firebase", "emulators:start", "--project", "demo-inami-map-app"]

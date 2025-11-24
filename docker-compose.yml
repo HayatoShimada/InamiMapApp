@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  firebase-emulators:
+    build:
+      context: .
+      dockerfile: Dockerfile.firebase
+    ports:
+      - "4000:4000"   # Emulator UI
+      - "8080:8080"   # Firestore
+      - "9099:9099"   # Auth
+      - "9199:9199"   # Storage
+      - "5001:5001"   # Functions
+    volumes:
+      - ./firebase.json:/app/firebase.json:ro
+      - ./firestore.rules:/app/firestore.rules:ro
+      - ./firestore.indexes.json:/app/firestore.indexes.json:ro
+      - ./storage.rules:/app/storage.rules:ro
+      - ./functions:/app/functions
+      - ./seed:/app/seed:ro
+      - firebase-data:/app/data
+    environment:
+      - FIREBASE_PROJECT_ID=demo-inami-map-app
+      - FIRESTORE_EMULATOR_HOST=0.0.0.0:8080
+      - FIREBASE_AUTH_EMULATOR_HOST=0.0.0.0:9099
+      - FIREBASE_STORAGE_EMULATOR_HOST=0.0.0.0:9199
+    command: >
+      sh -c "
+        cd /app/functions && npm install --silent && npm run build --silent || true &&
+        cd /app &&
+        firebase emulators:start --project demo-inami-map-app --import=/app/seed --export-on-exit=/app/data
+      "
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  firebase-data:

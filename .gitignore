@@ -80,15 +80,25 @@ coverage/
 *.tmp
 *.temp
 
-# Firebase configuration files
-mobile/lib/firebase_options.dart
+# Firebase configuration files (platform-specific credentials)
 mobile/android/app/google-services.json
 mobile/ios/Runner/GoogleService-Info.plist
 mobile/macos/Runner/GoogleService-Info.plist
 
-# API Keys and sensitive files
-*.json
-*.plist
+# NOTE: mobile/lib/firebase_options.dart is intentionally tracked
+# as a demo configuration for open source development
+
+# API Keys and sensitive files (platform-specific)
 **/google-services.json
 **/GoogleService-Info.plist
-**/firebase_options.dart
+
+# Firebase Emulator data
+firebase-data/
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+pubsub-debug.log
+
+# Scripts dependencies
+scripts/node_modules/

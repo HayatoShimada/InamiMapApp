@@ -1,0 +1,215 @@
+{
+  "users": {
+    "demo-admin-user": {
+      "uid": "demo-admin-user",
+      "email": "admin@example.com",
+      "displayName": "管理者ユーザー",
+      "photoURL": "",
+      "role": "admin",
+      "approvalStatus": "approved",
+      "createdAt": { "_seconds": 1700000000, "_nanoseconds": 0 },
+      "approvedAt": { "_seconds": 1700000000, "_nanoseconds": 0 }
+    },
+    "demo-shop-owner-1": {
+      "uid": "demo-shop-owner-1",
+      "email": "shop1@example.com",
+      "displayName": "店主太郎",
+      "photoURL": "",
+      "role": "shop_owner",
+      "approvalStatus": "approved",
+      "createdAt": { "_seconds": 1700000000, "_nanoseconds": 0 },
+      "approvedAt": { "_seconds": 1700000000, "_nanoseconds": 0 }
+    },
+    "demo-shop-owner-2": {
+      "uid": "demo-shop-owner-2",
+      "email": "shop2@example.com",
+      "displayName": "店主花子",
+      "photoURL": "",
+      "role": "shop_owner",
+      "approvalStatus": "pending",
+      "createdAt": { "_seconds": 1700000000, "_nanoseconds": 0 }
+    }
+  },
+  "shops": {
+    "shop-001": {
+      "id": "shop-001",
+      "ownerUserId": "demo-shop-owner-1",
+      "shopName": "井波彫刻工房",
+      "description": "伝統的な井波彫刻を制作・販売しています。彫刻体験も可能です。",
+      "maniacPoint": "欄間彫刻の技術を活かした現代アート作品も制作しています",
+      "location": { "latitude": 36.5483, "longitude": 136.9708 },
+      "address": "富山県南砺市井波3050",
+      "shopCategory": "工芸・クラフト",
+      "images": [],
+      "approvalStatus": "approved",
+      "approvedAt": { "_seconds": 1700000000, "_nanoseconds": 0 },
+      "website": "https://example.com/shop1",
+      "socialMedia": {
+        "instagram": "inami_choukoku",
+        "twitter": "inami_choukoku"
+      },
+      "phone": "0763-82-0001",
+      "closedDays": "水曜日",
+      "services": ["トイレ利用可能", "クレジットカード対応", "駐車場あり"],
+      "createdAt": { "_seconds": 1700000000, "_nanoseconds": 0 },
+      "updatedAt": { "_seconds": 1700000000, "_nanoseconds": 0 }
+    },
+    "shop-002": {
+      "id": "shop-002",
+      "ownerUserId": "demo-shop-owner-1",
+      "shopName": "瑞泉寺門前カフェ",
+      "description": "瑞泉寺の門前で地元の食材を使ったカフェメニューを提供しています。",
+      "maniacPoint": "井波産の野菜を使った季節限定メニューが人気",
+      "location": { "latitude": 36.5490, "longitude": 136.9720 },
+      "address": "富山県南砺市井波3100",
+      "shopCategory": "飲食店",
+      "images": [],
+      "approvalStatus": "approved",
+      "approvedAt": { "_seconds": 1700000000, "_nanoseconds": 0 },
+      "phone": "0763-82-0002",
+      "closedDays": "月曜日",
+      "services": ["トイレ利用可能", "Wi-Fi利用可能", "テイクアウト可能"],
+      "businessHours": {
+        "monday": { "open": "", "close": "", "closed": true },
+        "tuesday": { "open": "10:00", "close": "17:00", "closed": false },
+        "wednesday": { "open": "10:00", "close": "17:00", "closed": false },
+        "thursday": { "open": "10:00", "close": "17:00", "closed": false },
+        "friday": { "open": "10:00", "close": "17:00", "closed": false },
+        "saturday": { "open": "10:00", "close": "18:00", "closed": false },
+        "sunday": { "open": "10:00", "close": "18:00", "closed": false }
+      },
+      "createdAt": { "_seconds": 1700000000, "_nanoseconds": 0 },
+      "updatedAt": { "_seconds": 1700000000, "_nanoseconds": 0 }
+    },
+    "shop-003": {
+      "id": "shop-003",
+      "ownerUserId": "demo-shop-owner-2",
+      "shopName": "井波木工雑貨店",
+      "description": "地元の木材を使った雑貨を販売しています。",
+      "maniacPoint": "すべて手作りの一点物です",
+      "location": { "latitude": 36.5475, "longitude": 136.9700 },
+      "address": "富山県南砺市井波2980",
+      "shopCategory": "雑貨",
+      "images": [],
+      "approvalStatus": "pending",
+      "phone": "0763-82-0003",
+      "closedDays": "不定休",
+      "services": ["駐車場あり"],
+      "createdAt": { "_seconds": 1700000000, "_nanoseconds": 0 },
+      "updatedAt": { "_seconds": 1700000000, "_nanoseconds": 0 }
+    }
+  },
+  "events": {
+    "event-001": {
+      "id": "event-001",
+      "ownerUserId": "demo-shop-owner-1",
+      "shopId": "shop-001",
+      "eventName": "井波彫刻体験ワークショップ",
+      "description": "初心者でも楽しめる彫刻体験。小さな木彫りのストラップを作ります。",
+      "eventCategory": "ワークショップ",
+      "eventTimeStart": { "_seconds": 1735689600, "_nanoseconds": 0 },
+      "eventTimeEnd": { "_seconds": 1735700400, "_nanoseconds": 0 },
+      "location": "井波彫刻工房",
+      "participatingShops": ["shop-001"],
+      "images": [],
+      "approvalStatus": "approved",
+      "approvedAt": { "_seconds": 1700000000, "_nanoseconds": 0 },
+      "eventProgress": "scheduled",
+      "createdAt": { "_seconds": 1700000000, "_nanoseconds": 0 },
+      "updatedAt": { "_seconds": 1700000000, "_nanoseconds": 0 }
+    },
+    "event-002": {
+      "id": "event-002",
+      "ownerUserId": "demo-shop-owner-1",
+      "eventName": "井波まちなか散策ツアー",
+      "description": "地元ガイドと一緒に井波の歴史と文化を巡るツアー。瑞泉寺から八日町通りまで。",
+      "eventCategory": "祭り・イベント",
+      "eventTimeStart": { "_seconds": 1735776000, "_nanoseconds": 0 },
+      "eventTimeEnd": { "_seconds": 1735783200, "_nanoseconds": 0 },
+      "location": "瑞泉寺前集合",
+      "participatingShops": ["shop-001", "shop-002"],
+      "images": [],
+      "approvalStatus": "approved",
+      "approvedAt": { "_seconds": 1700000000, "_nanoseconds": 0 },
+      "eventProgress": "scheduled",
+      "createdAt": { "_seconds": 1700000000, "_nanoseconds": 0 },
+      "updatedAt": { "_seconds": 1700000000, "_nanoseconds": 0 }
+    },
+    "event-003": {
+      "id": "event-003",
+      "ownerUserId": "demo-shop-owner-2",
+      "eventName": "木工雑貨マーケット",
+      "description": "地元作家による木工雑貨の展示即売会。",
+      "eventCategory": "展示・ギャラリー",
+      "eventTimeStart": { "_seconds": 1735862400, "_nanoseconds": 0 },
+      "eventTimeEnd": { "_seconds": 1735873200, "_nanoseconds": 0 },
+      "location": "井波木工雑貨店",
+      "participatingShops": ["shop-003"],
+      "images": [],
+      "approvalStatus": "pending",
+      "eventProgress": "scheduled",
+      "createdAt": { "_seconds": 1700000000, "_nanoseconds": 0 },
+      "updatedAt": { "_seconds": 1700000000, "_nanoseconds": 0 }
+    }
+  },
+  "publicFacilities": {
+    "facility-001": {
+      "id": "facility-001",
+      "name": "瑞泉寺",
+      "description": "真宗大谷派の寺院。井波彫刻の発祥の地として知られる。",
+      "facilityType": "文化施設",
+      "location": { "latitude": 36.5492, "longitude": 136.9725 },
+      "address": "富山県南砺市井波3050",
+      "images": [],
+      "website": "https://www.zuisenji.jp/",
+      "openingHours": "9:00-17:00",
+      "accessInfo": "JR城端線福野駅からバス約20分",
+      "adminId": "demo-admin-user",
+      "isActive": true,
+      "createdAt": { "_seconds": 1700000000, "_nanoseconds": 0 },
+      "updatedAt": { "_seconds": 1700000000, "_nanoseconds": 0 }
+    },
+    "facility-002": {
+      "id": "facility-002",
+      "name": "井波彫刻総合会館",
+      "description": "井波彫刻の歴史と技術を紹介する博物館。彫刻作品の展示や職人の実演が見られます。",
+      "facilityType": "文化施設",
+      "location": { "latitude": 36.5480, "longitude": 136.9710 },
+      "address": "富山県南砺市井波700-111",
+      "images": [],
+      "openingHours": "9:00-17:00（入館は16:30まで）",
+      "accessInfo": "瑞泉寺から徒歩5分",
+      "adminId": "demo-admin-user",
+      "isActive": true,
+      "createdAt": { "_seconds": 1700000000, "_nanoseconds": 0 },
+      "updatedAt": { "_seconds": 1700000000, "_nanoseconds": 0 }
+    },
+    "facility-003": {
+      "id": "facility-003",
+      "name": "八日町通り公共駐車場",
+      "description": "八日町通り観光に便利な無料駐車場。",
+      "facilityType": "駐車場",
+      "location": { "latitude": 36.5470, "longitude": 136.9695 },
+      "address": "富山県南砺市井波",
+      "images": [],
+      "openingHours": "24時間",
+      "accessInfo": "八日町通り入口",
+      "adminId": "demo-admin-user",
+      "isActive": true,
+      "createdAt": { "_seconds": 1700000000, "_nanoseconds": 0 },
+      "updatedAt": { "_seconds": 1700000000, "_nanoseconds": 0 }
+    }
+  },
+  "categories": {
+    "shop-categories": {
+      "id": "shop-categories",
+      "type": "shop",
+      "items": ["飲食店", "工芸・クラフト", "雑貨", "宿泊", "その他"]
+    },
+    "event-categories": {
+      "id": "event-categories",
+      "type": "event",
+      "items": ["祭り・イベント", "ワークショップ", "展示・ギャラリー", "セール・フェア", "その他"]
+    }
+  }
+}

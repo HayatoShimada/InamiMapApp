@@ -300,5 +300,5 @@ flutter pub get
 ---
 
 **Development Team**: Claude Code + 85-Store  
-**Last Updated**: 2024/11/17  
+**Last Updated**: 2025/11/17  
 **Version**: 4.1.0

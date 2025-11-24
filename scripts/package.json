@@ -1,0 +1,11 @@
+{
+  "name": "inami-map-scripts",
+  "version": "1.0.0",
+  "description": "Development scripts for InamiMapApp",
+  "scripts": {
+    "seed": "node seed-firestore.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.0.0"
+  }
+}
