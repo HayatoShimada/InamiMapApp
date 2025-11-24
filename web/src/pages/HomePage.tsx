@@ -39,7 +39,7 @@ const HomePage: React.FC = () => {
       {/* ヘッダーセクション */}
       <Box sx={{ py: 8, textAlign: 'center' }}>
         <Typography variant="h2" component="h1" gutterBottom sx={{ fontWeight: 'bold' }}>
-          井波町マップアプリ
+          とことこ井波マップ
         </Typography>
         <Typography variant="h5" color="text.secondary" paragraph>
           富山県南砺市井波の店舗・イベント情報を一元管理する公式プラットフォーム
@@ -176,7 +176,7 @@ const HomePage: React.FC = () => {
         </Typography>
         <Paper elevation={1} sx={{ p: 3, mt: 3 }}>
           <Typography variant="body1" paragraph>
-            井波町マップアプリは、ユーザーの個人情報保護を最優先に考えています。
+            とことこ井波マップは、ユーザーの個人情報保護を最優先に考えています。
           </Typography>
           <List>
             <ListItem>
@@ -223,22 +223,12 @@ const HomePage: React.FC = () => {
                 <Box>
                   <Typography variant="h6">85-Store</Typography>
                   <Typography color="text.secondary">
-                    〒932-0211<br />
-                    富山県南砺市井波3110-1
+                    富山県南砺市本町四丁目100番地
                   </Typography>
                 </Box>
               </Box>
             </Grid>
             <Grid item xs={12} md={6}>
-              <Box display="flex" alignItems="center" mb={2}>
-                <PhoneIcon sx={{ mr: 2, color: 'primary.main' }} />
-                <Box>
-                  <Typography variant="h6">電話番号</Typography>
-                  <Typography color="text.secondary">
-                    0763-82-5850
-                  </Typography>
-                </Box>
-              </Box>
               <Box display="flex" alignItems="center">
                 <EmailIcon sx={{ mr: 2, color: 'primary.main' }} />
                 <Box>
@@ -260,7 +250,7 @@ const HomePage: React.FC = () => {
         </Typography>
         <Paper elevation={1} sx={{ p: 3, mt: 3 }}>
           <Typography variant="body1" paragraph>
-            井波町マップアプリは、オープンソースプロジェクトとして開発されています。
+            とことこ井波マップは、オープンソースプロジェクトとして開発されています。
           </Typography>
           <Grid container spacing={3}>
             <Grid item xs={12} md={6}>

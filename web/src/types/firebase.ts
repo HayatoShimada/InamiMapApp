@@ -123,6 +123,7 @@ export interface BusinessHours {
   open: string;
   close: string;
   closed: boolean;
+  is24Hours?: boolean;
 }
 
 export interface WeeklyBusinessHours {

@@ -4,14 +4,16 @@ class BusinessHours {
   final String? open;
   final String? close;
   final bool closed;
+  final bool is24Hours;
 
-  BusinessHours({this.open, this.close, this.closed = false});
+  BusinessHours({this.open, this.close, this.closed = false, this.is24Hours = false});
 
   factory BusinessHours.fromMap(Map<String, dynamic> map) {
     return BusinessHours(
       open: map['open'],
-      close: map['close'], 
+      close: map['close'],
       closed: map['closed'] ?? false,
+      is24Hours: map['is24Hours'] ?? false,
     );
   }
 
@@ -20,7 +22,16 @@ class BusinessHours {
       'open': open,
       'close': close,
       'closed': closed,
+      'is24Hours': is24Hours,
     };
+  }
+
+  // 営業時間の表示文字列を取得
+  String get displayText {
+    if (closed) return '定休日';
+    if (is24Hours) return '24時間営業';
+    if (open != null && close != null) return '$open - $close';
+    return '営業時間不明';
   }
 }
 
@@ -110,8 +121,12 @@ class TemporaryStatus {
   // 今日が臨時営業変更期間かチェック
   bool get isActiveToday {
     final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
     if (startDate != null && endDate != null) {
-      return now.isAfter(startDate!) && now.isBefore(endDate!.add(const Duration(days: 1)));
+      final start = DateTime(startDate!.year, startDate!.month, startDate!.day);
+      final end = DateTime(endDate!.year, endDate!.month, endDate!.day);
+      // 日付単位で比較（時刻を無視）
+      return !today.isBefore(start) && !today.isAfter(end);
     }
     return false;
   }

@@ -277,14 +277,14 @@ class ProfileScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('井波マップアプリについて'),
+        title: const Text('とことこ井波マップについて'),
         content: const Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('バージョン: 1.0.0'),
             SizedBox(height: 8),
-            Text('井波町の店舗やイベント情報を探索できるアプリです。'),
+            Text('南砺市井波の店舗やイベント情報を探索できるアプリです。'),
             SizedBox(height: 8),
             Text('お気に入り機能を使って、興味のある情報を保存しましょう。'),
           ],
@@ -472,7 +472,7 @@ class ProfileScreen extends StatelessWidget {
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 8),
-              Text('この利用規約（以下「本規約」）は、85-Store（以下「運営者」）が提供する井波マップアプリ（以下「本アプリ」）の利用条件を定めるものです。'),
+              Text('この利用規約（以下「本規約」）は、85-Store（以下「運営者」）が提供するとことこ井波マップ（以下「本アプリ」）の利用条件を定めるものです。'),
               SizedBox(height: 16),
               
               Text(

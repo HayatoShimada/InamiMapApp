@@ -75,7 +75,7 @@ export default function AppNavigation() {
     <AppBar position="static" color="primary">
       <Toolbar>
         <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-          井波マップ管理画面
+          とことこ井波マップ 管理画面
         </Typography>
 
         {/* ナビゲーションボタン */}

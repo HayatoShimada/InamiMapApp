@@ -85,8 +85,7 @@ export default function PendingApproval() {
                 <strong>お問い合わせ:</strong><br />
                 承認が却下された場合は、85-Storeまでお気軽にお問い合わせください。<br />
                 Email: info@85-store.com<br />
-                電話: 0763-82-5850<br />
-                住所: 富山県南砺市井波3110-1
+                住所: 富山県南砺市本町四丁目100番地
               </Typography>
             </Alert>
           )}

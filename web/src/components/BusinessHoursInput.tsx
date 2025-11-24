@@ -45,6 +45,7 @@ export default function BusinessHoursInput({ value, onChange, disabled = false }
         {Object.entries(WEEKDAYS).map(([dayKey, dayLabel]) => {
           const dayHours = value[dayKey as keyof WeeklyBusinessHours];
           const isClosed = dayHours?.closed ?? false;
+          const is24Hours = dayHours?.is24Hours ?? false;
 
           return (
             <Grid item xs={12} key={dayKey}>
@@ -55,28 +56,46 @@ export default function BusinessHoursInput({ value, onChange, disabled = false }
                       {dayLabel}
                     </Typography>
                   </Grid>
-                  
-                  <Grid item xs={12} sm={3}>
+
+                  <Grid item xs={6} sm={2}>
                     <FormControlLabel
                       control={
                         <Checkbox
                           checked={isClosed}
                           onChange={(e) => {
                             const newHours = e.target.checked
-                              ? { open: '', close: '', closed: true }
-                              : { open: '09:00', close: '17:00', closed: false };
+                              ? { open: '', close: '', closed: true, is24Hours: false }
+                              : { open: '09:00', close: '17:00', closed: false, is24Hours: false };
                             handleDayChange(dayKey as keyof WeeklyBusinessHours, newHours);
                           }}
-                          disabled={disabled}
+                          disabled={disabled || is24Hours}
                         />
                       }
                       label="定休日"
                     />
                   </Grid>
 
-                  {!isClosed && (
+                  <Grid item xs={6} sm={2}>
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={is24Hours}
+                          onChange={(e) => {
+                            const newHours = e.target.checked
+                              ? { open: '00:00', close: '24:00', closed: false, is24Hours: true }
+                              : { open: '09:00', close: '17:00', closed: false, is24Hours: false };
+                            handleDayChange(dayKey as keyof WeeklyBusinessHours, newHours);
+                          }}
+                          disabled={disabled || isClosed}
+                        />
+                      }
+                      label="24時間"
+                    />
+                  </Grid>
+
+                  {!isClosed && !is24Hours && (
                     <>
-                      <Grid item xs={12} sm={3}>
+                      <Grid item xs={12} sm={2}>
                         <TextField
                           label="開店時間"
                           type="time"
@@ -87,6 +106,7 @@ export default function BusinessHoursInput({ value, onChange, disabled = false }
                               open: formatTime(e.target.value),
                               close: dayHours?.close || '17:00',
                               closed: false,
+                              is24Hours: false,
                             };
                             handleDayChange(dayKey as keyof WeeklyBusinessHours, newHours);
                           }}
@@ -97,8 +117,8 @@ export default function BusinessHoursInput({ value, onChange, disabled = false }
                           fullWidth
                         />
                       </Grid>
-                      
-                      <Grid item xs={12} sm={3}>
+
+                      <Grid item xs={12} sm={2}>
                         <TextField
                           label="閉店時間"
                           type="time"
@@ -109,6 +129,7 @@ export default function BusinessHoursInput({ value, onChange, disabled = false }
                               open: dayHours?.open || '09:00',
                               close: formatTime(e.target.value),
                               closed: false,
+                              is24Hours: false,
                             };
                             handleDayChange(dayKey as keyof WeeklyBusinessHours, newHours);
                           }}
@@ -119,20 +140,28 @@ export default function BusinessHoursInput({ value, onChange, disabled = false }
                           fullWidth
                         />
                       </Grid>
-                      
-                      <Grid item xs={12} sm={1}>
+
+                      <Grid item xs={12} sm={2}>
                         <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>
-                          {dayHours?.open && dayHours?.close && 
+                          {dayHours?.open && dayHours?.close &&
                             `${dayHours.open}-${dayHours.close}`}
                         </Typography>
                       </Grid>
                     </>
                   )}
-                  
+
                   {isClosed && (
-                    <Grid item xs={12} sm={7}>
+                    <Grid item xs={12} sm={6}>
                       <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
                         定休日
+                      </Typography>
+                    </Grid>
+                  )}
+
+                  {is24Hours && !isClosed && (
+                    <Grid item xs={12} sm={6}>
+                      <Typography variant="body2" color="primary.main" sx={{ fontWeight: 'bold' }}>
+                        24時間営業
                       </Typography>
                     </Grid>
                   )}
@@ -148,6 +177,7 @@ export default function BusinessHoursInput({ value, onChange, disabled = false }
           <strong>営業時間設定のヒント:</strong><br />
           • 各曜日ごとに開店・閉店時間を設定できます<br />
           • 定休日の場合は「定休日」にチェックを入れてください<br />
+          • 24時間営業の場合は「24時間」にチェックを入れてください<br />
           • 時間は24時間形式で設定されます（例：9:00, 17:00）<br />
           • 設定した営業時間はアプリで自動的に表示されます
         </Typography>

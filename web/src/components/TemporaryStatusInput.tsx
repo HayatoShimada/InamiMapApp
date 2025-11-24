@@ -11,11 +11,12 @@ import {
   Divider,
   Collapse,
   Button,
+  Stack,
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { Warning, Schedule, Info, ExpandMore, ExpandLess } from '@mui/icons-material';
+import { Warning, Schedule, Info, ExpandMore, ExpandLess, Today, CheckCircle } from '@mui/icons-material';
 import { WeeklyBusinessHours } from '../types/firebase';
 import BusinessHoursInput from './BusinessHoursInput';
 import dayjs, { Dayjs } from 'dayjs';
@@ -67,6 +68,53 @@ export default function TemporaryStatusInput({ value, onChange, disabled = false
           <Alert severity="info" sx={{ mb: 2 }}>
             臨時休業や時短営業などの一時的な営業変更をお客様に案内できます
           </Alert>
+        </Grid>
+
+        {/* クイックアクションボタン */}
+        <Grid item xs={12}>
+          <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
+            <Button
+              variant="contained"
+              color="error"
+              startIcon={<Today />}
+              onClick={() => {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                onChange({
+                  isTemporaryClosed: true,
+                  isReducedHours: false,
+                  startDate: today,
+                  endDate: today,
+                  message: '本日は臨時休業とさせていただきます',
+                  temporaryHours: undefined,
+                });
+              }}
+              disabled={disabled}
+              sx={{ fontWeight: 'bold' }}
+            >
+              今日を臨時休業にする
+            </Button>
+            {isTemporaryActive && (
+              <Button
+                variant="outlined"
+                color="success"
+                startIcon={<CheckCircle />}
+                onClick={() => {
+                  onChange({
+                    isTemporaryClosed: false,
+                    isReducedHours: false,
+                    startDate: undefined,
+                    endDate: undefined,
+                    message: '',
+                    temporaryHours: undefined,
+                  });
+                }}
+                disabled={disabled}
+              >
+                臨時変更を解除
+              </Button>
+            )}
+          </Stack>
         </Grid>
 
         {/* 臨時休業設定 */}

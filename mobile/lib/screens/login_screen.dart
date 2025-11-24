@@ -33,7 +33,7 @@ class LoginScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 24),
                   const Text(
-                    '井波マップアプリ',
+                    'とことこ井波マップ',
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,

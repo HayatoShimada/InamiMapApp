@@ -48,7 +48,7 @@ export default function Login() {
         <Paper elevation={3} sx={{ padding: 4, width: '100%' }}>
           <Box sx={{ textAlign: 'center', mb: 3 }}>
             <Typography component="h1" variant="h4" gutterBottom>
-              井波マップアプリ
+              とことこ井波マップ
             </Typography>
             <Typography variant="h6" color="text.secondary" gutterBottom>
               店主管理画面
