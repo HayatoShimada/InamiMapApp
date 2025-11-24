@@ -9,7 +9,6 @@ import 'providers/auth_provider.dart';
 import 'providers/favorite_provider.dart';
 import 'providers/navigation_provider.dart';
 import 'screens/splash_screen.dart';
-import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 
 /// 開発環境でエミュレータを使用するかどうか
@@ -70,9 +69,9 @@ class InamiMapApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => NavigationProvider()),
       ],
       child: MaterialApp(
-        title: '井波マップアプリ',
+        title: 'とことこ井波マップ',
         theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
           useMaterial3: true,
           appBarTheme: const AppBarTheme(
             elevation: 0,
@@ -81,7 +80,6 @@ class InamiMapApp extends StatelessWidget {
         ),
         home: const SplashScreen(),
         routes: {
-          '/login': (context) => const LoginScreen(),
           '/home': (context) => const HomeScreen(),
         },
         debugShowCheckedModeBanner: false,

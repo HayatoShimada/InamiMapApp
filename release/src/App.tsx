@@ -8,6 +8,7 @@ import Donation from './pages/Donation'
 import Download from './pages/Download'
 import ShopInquiry from './pages/ShopInquiry'
 import Privacy from './pages/Privacy'
+import BetaTest from './pages/BetaTest'
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
         <Route path="/download" element={<Download />} />
         <Route path="/shop-inquiry" element={<ShopInquiry />} />
         <Route path="/privacy" element={<Privacy />} />
+        <Route path="/beta" element={<BetaTest />} />
       </Routes>
     </Layout>
   )

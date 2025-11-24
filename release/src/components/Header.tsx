@@ -22,9 +22,10 @@ const navItems = [
   { label: 'ホーム', path: '/' },
   { label: 'ニュース', path: '/news' },
   { label: 'アプリについて', path: '/about' },
+  { label: 'ベータテスト', path: '/beta' },
   { label: 'ダウンロード', path: '/download' },
   { label: '加盟店募集', path: '/shop-inquiry' },
-  { label: '寄付', path: '/donation' },
+  // { label: '寄付', path: '/donation' },
   { label: 'お問い合わせ', path: '/contact' },
 ]
 
