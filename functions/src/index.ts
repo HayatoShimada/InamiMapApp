@@ -14,9 +14,10 @@ export const processShopImage = imageProcessing.processShopImage;
 export const processEventImage = imageProcessing.processEventImage;
 
 // 通知関連のCloud Functions
-export const onEventStatusChange = notificationHandlers.onEventStatusChange;
+export const onUserApprovalChange = notificationHandlers.onUserApprovalChange;
+export const onShopApprovalChange = notificationHandlers.onShopApprovalChange;
 export const onEventApprovalChange = notificationHandlers.onEventApprovalChange;
-export const onNewShopRegistration = notificationHandlers.onNewShopRegistration;
+export const onEventStatusChange = notificationHandlers.onEventStatusChange;
 export const onNewEventSubmission = notificationHandlers.onNewEventSubmission;
 
 // URL処理関連のCloud Functions
